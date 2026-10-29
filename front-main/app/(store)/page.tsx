@@ -33,49 +33,43 @@ const categories = [
     name: "Laptops Gamer",
     count: "24 modelos",
     slug: "laptops",
-    imagePosition: "bg-position-[0%_0%]",
-  },
-  {
-    name: "PC de Escritorio",
-    count: "18 equipos",
-    slug: "pc-escritorio",
-    imagePosition: "bg-position-[50%_0%]",
+    image: "/images/homepage/gaming-laptop.png",
   },
   {
     name: "Tarjetas Gráficas",
     count: "16 modelos",
     slug: "tarjetas-de-video",
-    imagePosition: "bg-position-[100%_0%]",
+    image: "/images/homepage/graphics-card.png",
   },
   {
     name: "Monitores",
     count: "20 modelos",
     slug: "monitores",
-    imagePosition: "bg-position-[0%_100%]",
+    image: "/images/homepage/monitor.png",
   },
   {
     name: "Procesadores",
     count: "30 modelos",
     slug: "procesadores",
-    imagePosition: "bg-position-[50%_100%]",
+    image: "/images/homepage/processor.png",
   },
   {
     name: "Teclados",
     count: "12 modelos",
     slug: "teclados",
-    imagePosition: "bg-position-[100%_100%]",
+    image: "/images/homepage/keyboard.png",
   },
   {
     name: "Mouse",
     count: "10 modelos",
     slug: "mouse",
-    imagePosition: "bg-position-[100%_100%]",
+    image: "/images/homepage/mouse.png",
   },
   {
     name: "Audífonos",
     count: "8 modelos",
     slug: "audifonos",
-    imagePosition: "bg-position-[100%_100%]",
+    image: "/images/homepage/headphones.png",
   },
 ];
 
@@ -97,15 +91,6 @@ const featuredProducts: FeaturedProduct[] = [
     slug: "nvidia-geforce-rtx-4090-24gb",
     categorySlug: "tarjetas-de-video",
     imagePosition: "bg-position-[50%_0%]",
-  },
-  {
-    brand: "NET CUSTOM",
-    category: "PC armada",
-    name: "Net Custom PC Ryzen 7 + RTX 4070",
-    price: "5,399.00",
-    slug: "net-custom-ryzen-7-rtx-4070",
-    categorySlug: "pc-escritorio",
-    imagePosition: "bg-position-[100%_0%]",
   },
   {
     brand: "SAMSUNG",
@@ -158,7 +143,6 @@ const productFilters = [
   { label: "Todos", href: "/#productos-destacados", active: true },
   { label: "Laptops", href: "/productos/laptops" },
   { label: "Gráficas", href: "/productos/tarjetas-de-video" },
-  { label: "PC Armadas", href: "/productos/pc-escritorio" },
   { label: "Monitores", href: "/productos/monitores" },
 ];
 
@@ -279,7 +263,7 @@ export default function Home() {
 
           <div className="
             mt-[11px] grid grid-cols-2 gap-3 min-[761px]:mt-[13px]
-            min-[761px]:grid-cols-3 min-[761px]:gap-4 min-[1051px]:grid-cols-4 min-[1051px]:gap-5
+            min-[761px]:grid-cols-4 min-[761px]:gap-4 min-[1051px]:grid-cols-7 min-[1051px]:gap-5
           ">
             {categories.map((category) => (
               <Link
@@ -292,23 +276,24 @@ export default function Home() {
                 href={`/productos/${category.slug}`}
                 key={category.slug}
               >
-                <span
-                  className={`
-                    block aspect-[1.45] w-full flex-none min-[761px]:aspect-[1.4]
-                    bg-[url('/images/category-contact-sheet.png')] bg-size-[300%_200%] bg-no-repeat ${category.imagePosition}
-                  `}
-                  aria-hidden="true"
+                <Image
+                  src={category.image}
+                  alt=""
+                  width={1024}
+                  height={1024}
+                  sizes="(min-width: 1051px) 14vw, (min-width: 761px) 25vw, 50vw"
+                  className="block aspect-square w-full flex-none object-cover"
                 />
                 <span className="
-                  flex min-h-[54px] flex-col justify-center gap-[5px] px-2 py-2 min-[761px]:px-2.5
+                  flex min-h-[46px] flex-col justify-center gap-1 px-2 py-1.5 min-[761px]:px-2.5
                 ">
                   <span className="
                     overflow-hidden text-ellipsis whitespace-nowrap
-                    text-[10px] font-semibold leading-[1.2] text-[#111827]
+                    text-[11px] font-semibold leading-[1.2] text-[#111827]
                   ">
                     {category.name}
                   </span>
-                  <span className="text-[9px] leading-[1.2] text-[#71839d]">
+                  <span className="text-[10px] leading-[1.2] text-[#71839d]">
                     {category.count}
                   </span>
                 </span>

@@ -18,7 +18,6 @@ const pageSize = 12;
 
 const categoryLabels: Record<string, string> = {
   laptops: "Laptops",
-  "pc-escritorio": "PC de Escritorio",
   "tarjetas-de-video": "Tarjetas de Video",
   procesadores: "Procesadores",
   monitores: "Monitores",

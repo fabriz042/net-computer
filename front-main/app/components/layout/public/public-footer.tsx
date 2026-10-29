@@ -3,7 +3,6 @@ import Link from "next/link";
 const productLinks = [
   { label: "Laptops Gamer", href: "/catalogo?categoria=laptops-gamer" },
   { label: "Tarjetas de Video", href: "/catalogo?categoria=tarjetas-graficas" },
-  { label: "PC de Escritorio", href: "/catalogo?categoria=pc-escritorio" },
   { label: "Monitores", href: "/catalogo?categoria=monitores" },
 ];
 

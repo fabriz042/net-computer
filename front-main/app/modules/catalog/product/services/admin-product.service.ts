@@ -4,7 +4,7 @@ import type {
   AdminProductCreateRequest,
   AdminProductListParams,
   AdminProductListResponse,
-  ProductEmbeddingGenerationResponse,
+  AdminProductEmbeddingResponse,
 } from "../types/admin-product.type";
 
 export const createAdminProduct = async (
@@ -25,8 +25,8 @@ export const listAdminProducts = async (
   return response.data;
 };
 
-export const generateAdminProductEmbeddings = async (): Promise<ProductEmbeddingGenerationResponse> => {
-  const response = await api.post<ProductEmbeddingGenerationResponse>(
+export const generateAdminProductEmbeddings = async (): Promise<AdminProductEmbeddingResponse> => {
+  const response = await api.post<AdminProductEmbeddingResponse>(
     "/admin/products/embeddings",
     null
   );

@@ -1,7 +1,9 @@
 package com.netcomp.back_main.catalog.product.domain;
 
 import com.netcomp.back_main.catalog.category.domain.Category;
+import com.netcomp.back_main.catalog.brand.domain.Brand;
 import jakarta.persistence.*;
+import org.hibernate.annotations.Array;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -38,8 +40,10 @@ public class Product {
     @Column(nullable = false)
     private Boolean active = true;
 
-    @Column(columnDefinition = "vector(768)")
-    private String embedding;
+    @JdbcTypeCode(SqlTypes.VECTOR)
+    @Array(length = 1024)
+    @Column(columnDefinition = "vector(1024)")
+    private float[] embedding;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("displayOrder ASC")
@@ -58,13 +62,18 @@ public class Product {
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "brand_id")
+    private Brand brand;
+
     // constructors
     public Product() {
     }
 
-    public Product(Category category, String name, BigDecimal price, Integer stock, String slug,
-                   Boolean active, String embedding, Map<String, Object> specifications) {
+    public Product(Category category, Brand brand, String name, BigDecimal price, Integer stock, String slug,
+                   Boolean active, float[] embedding, Map<String, Object> specifications) {
         this.category = category;
+        this.brand = brand;
         this.name = name;
         this.price = price;
         this.stock = stock;
@@ -74,12 +83,13 @@ public class Product {
         this.specifications = specifications != null ? specifications : new HashMap<>();
     }
 
-    public Product(UUID id, Instant createdAt, Category category, String name, BigDecimal price,
-                   Integer stock, String slug, Boolean active, String embedding,
+    public Product(UUID id, Instant createdAt, Category category, Brand brand, String name, BigDecimal price,
+                   Integer stock, String slug, Boolean active, float[] embedding,
                    Map<String, Object> specifications) {
         this.id = id;
         this.createdAt = createdAt;
         this.category = category;
+        this.brand = brand;
         this.name = name;
         this.price = price;
         this.stock = stock;
@@ -129,7 +139,7 @@ public class Product {
         return active;
     }
 
-    public String getEmbedding() {
+    public float[] getEmbedding() {
         return embedding;
     }
 
@@ -143,6 +153,10 @@ public class Product {
 
     public Category getCategory() {
         return category;
+    }
+
+    public Brand getBrand() {
+        return brand;
     }
 
     // setters
@@ -174,7 +188,7 @@ public class Product {
         this.active = active;
     }
 
-    public void setEmbedding(String embedding) {
+    public void setEmbedding(float[] embedding) {
         this.embedding = embedding;
     }
 
@@ -188,5 +202,9 @@ public class Product {
 
     public void setCategory(Category category) {
         this.category = category;
+    }
+
+    public void setBrand(Brand brand) {
+        this.brand = brand;
     }
 }

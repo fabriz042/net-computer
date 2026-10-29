@@ -56,6 +56,6 @@ export interface AdminProductListResponse {
   data: AdminProduct[];
 }
 
-export interface ProductEmbeddingGenerationResponse {
+export interface AdminProductEmbeddingResponse {
   generatedCount: number;
 }

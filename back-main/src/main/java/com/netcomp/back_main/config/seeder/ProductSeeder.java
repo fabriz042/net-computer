@@ -102,7 +102,7 @@ public class ProductSeeder {
     }
 
     private void assignProductBrand(String productSlug, String brandSlug) {
-        productRepository.updateBrandBySlug(productSlug, getBrand(brandSlug));
+        productRepository.updateBrandBySlug(productSlug, getBrand(brandSlug).getId());
     }
 
     private Brand getBrand(String slug) {

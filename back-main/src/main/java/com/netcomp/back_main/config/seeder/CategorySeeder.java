@@ -83,8 +83,8 @@ public class CategorySeeder {
     }
 
     private void moveLegacyPeripheralProducts(Category keyboards, Category mice) {
-        productRepository.updateCategoryBySlug("teclado-mecanico-logitech-g-pro-x", keyboards);
-        productRepository.updateCategoryBySlug("mouse-gamer-razer-deathadder-v3-pro", mice);
+        productRepository.updateCategoryBySlug("teclado-mecanico-logitech-g-pro-x", keyboards.getId());
+        productRepository.updateCategoryBySlug("mouse-gamer-razer-deathadder-v3-pro", mice.getId());
 
         categoryRepository.findBySlug("perifericos").ifPresent(category -> {
             category.setActive(false);

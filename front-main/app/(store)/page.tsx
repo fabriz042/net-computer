@@ -8,6 +8,7 @@ import Button from "@/app/components/ui/button";
 import ProductCard, {
   type FeaturedProduct,
 } from "@/app/components/store/product-card";
+import HeroPcModel from "@/app/components/store/hero-pc-model";
 
 const storeBenefits = [
   {
@@ -153,57 +154,58 @@ export default function Home() {
       <main>
         <section
           className="
-            grid grid-cols-1 items-center gap-6 px-4 pb-6 pt-[30px]
-            sm:px-6
-            min-[761px]:grid-cols-2 min-[761px]:gap-[clamp(44px,8vw,96px)] 
-            min-[761px]:px-[clamp(24px,4.1vw,50px)] min-[761px]:pb-[41px] min-[761px]:pt-[43px]
+            relative isolate mb-6 min-h-[660px] overflow-hidden rounded-[11px]
+            px-4 sm:px-6
+            min-[761px]:mb-[41px] min-[761px]:rounded-[14px]
+            min-[1000px]:min-h-[517px]
+            min-[761px]:px-[clamp(24px,4.1vw,50px)]
           "
           aria-labelledby="hero-title"
         >
-          <div className="min-w-0">
-            <p className="
-              mb-[10px] min-[761px]:mb-3
-              text-[10px] font-bold uppercase leading-[1.2] text-[#647895]
-            ">
-              Hardware &amp; computadoras
-            </p>
-            <h1
-              id="hero-title"
-              className="
-                min-[761px]:max-w-[510px]
-                text-[32px] font-bold leading-[1.13] tracking-[-0.045em] text-[#111827]
-                sm:text-[clamp(32px,8vw,42px)] min-[761px]:text-[clamp(32px,3.15vw,39px)]
-              "
-            >
-              Tecnología y potencia para tu trabajo y juego.
-            </h1>
-            <p className="
-              mt-[14px] max-w-[560px] min-[761px]:mt-[18px] min-[761px]:max-w-[455px]
-              text-[12px] leading-[1.35] text-[#647895]
-              min-[761px]:text-[13px]
-            ">
-              Equipos de alto rendimiento, componentes seleccionados y asesoría
-              especializada con garantía oficial.
-            </p>
-            <div className="mt-[22px] min-[761px]:mt-[33px]">
-              <Button href="/catalogo" size="large">
-                Ver catálogo
-              </Button>
-            </div>
-          </div>
-
+          <HeroPcModel />
+          <div
+            aria-hidden="true"
+            className="
+              pointer-events-none absolute inset-0 z-10
+              bg-[linear-gradient(180deg,_rgba(255,255,255,.98)_0%,_rgba(255,255,255,.94)_36%,_rgba(255,255,255,.62)_57%,_rgba(255,255,255,0)_100%)]
+              min-[1000px]:bg-[linear-gradient(90deg,_#ffffff_0%,_rgba(255,255,255,.98)_30%,_rgba(255,255,255,.93)_44%,_rgba(255,255,255,.82)_54%,_rgba(255,255,255,.48)_66%,_rgba(255,255,255,.16)_80%,_rgba(255,255,255,0)_90%)]
+            "
+          />
           <div className="
-            relative aspect-[1.3] w-full sm:aspect-[1.55] min-[761px]:aspect-[1.45]
-            overflow-hidden rounded-[11px] bg-slate-100 min-[761px]:rounded-[14px]
+            relative z-20 flex min-h-[660px] items-start pt-[30px]
+            min-[1000px]:min-h-[517px] min-[1000px]:items-center min-[1000px]:pt-0
           ">
-            <Image
-              src="/images/gaming-setup-hero.png"
-              alt="Computadora, monitor y periféricos para un espacio de juego y trabajo"
-              fill
-              priority
-              sizes="(max-width: 760px) 100vw, 48vw"
-              className="object-cover object-center"
-            />
+            <div className="min-w-0 max-w-[560px]">
+              <p className="
+                mb-[10px] min-[761px]:mb-3
+                text-[10px] font-bold uppercase leading-[1.2] text-[#647895]
+              ">
+                Hardware &amp; computadoras
+              </p>
+              <h1
+                id="hero-title"
+                className="
+                  min-[761px]:max-w-[510px]
+                  text-[32px] font-bold leading-[1.13] tracking-[-0.045em] text-[#111827]
+                  sm:text-[clamp(32px,8vw,42px)] min-[761px]:text-[clamp(32px,3.15vw,39px)]
+                "
+              >
+                Tecnología y potencia para tu trabajo y juego.
+              </h1>
+              <p className="
+                mt-[14px] max-w-[560px] min-[761px]:mt-[18px] min-[761px]:max-w-[455px]
+                text-[12px] leading-[1.35] text-[#647895]
+                min-[761px]:text-[13px]
+              ">
+                Equipos de alto rendimiento, componentes seleccionados y asesoría
+                especializada con garantía oficial.
+              </p>
+              <div className="mt-[22px] min-[761px]:mt-[33px]">
+                <Button href="/catalogo" size="large">
+                  Ver catálogo
+                </Button>
+              </div>
+            </div>
           </div>
         </section>
 

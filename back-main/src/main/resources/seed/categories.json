@@ -1,0 +1,85 @@
+[
+  {
+    "slug": "laptops",
+    "name": "Laptops",
+    "active": true,
+    "specificationSchema": [
+      { "key": "processor", "label": "Procesador", "type": "text", "required": true },
+      { "key": "ram", "label": "Memoria RAM", "type": "text", "required": true },
+      { "key": "storage", "label": "Almacenamiento", "type": "text", "required": true },
+      { "key": "gpu", "label": "Tarjeta gráfica", "type": "text", "required": false },
+      { "key": "display", "label": "Pantalla", "type": "text", "required": false }
+    ]
+  },
+  {
+    "slug": "tarjetas-de-video",
+    "name": "Tarjetas de Video",
+    "active": true,
+    "specificationSchema": [
+      { "key": "vram", "label": "Memoria de video", "type": "text", "required": true },
+      { "key": "interface", "label": "Interfaz", "type": "select", "required": true, "options": ["PCIe 4.0", "PCIe 5.0"] },
+      { "key": "ports", "label": "Puertos", "type": "text", "required": false },
+      { "key": "recommended_psu", "label": "Fuente recomendada", "type": "text", "required": false }
+    ]
+  },
+  {
+    "slug": "procesadores",
+    "name": "Procesadores",
+    "active": true,
+    "specificationSchema": [
+      { "key": "socket", "label": "Socket", "type": "text", "required": true },
+      { "key": "cores", "label": "Núcleos", "type": "number", "required": true },
+      { "key": "threads", "label": "Hilos", "type": "number", "required": true },
+      { "key": "base_clock", "label": "Frecuencia base", "type": "text", "required": false },
+      { "key": "boost_clock", "label": "Frecuencia máxima", "type": "text", "required": false },
+      { "key": "cache", "label": "Caché", "type": "text", "required": false }
+    ]
+  },
+  {
+    "slug": "monitores",
+    "name": "Monitores",
+    "active": true,
+    "specificationSchema": [
+      { "key": "screen_size", "label": "Tamaño de pantalla", "type": "text", "required": true },
+      { "key": "resolution", "label": "Resolución", "type": "text", "required": true },
+      { "key": "refresh_rate", "label": "Frecuencia de actualización", "type": "text", "required": true },
+      { "key": "response_time", "label": "Tiempo de respuesta", "type": "text", "required": false },
+      { "key": "panel", "label": "Tipo de panel", "type": "text", "required": false }
+    ]
+  },
+  {
+    "slug": "teclados",
+    "name": "Teclados",
+    "active": true,
+    "specificationSchema": [
+      { "key": "switches", "label": "Tipo de switch", "type": "text", "required": false },
+      { "key": "layout", "label": "Distribución", "type": "text", "required": true },
+      { "key": "connectivity", "label": "Conectividad", "type": "text", "required": true },
+      { "key": "lighting", "label": "Iluminación", "type": "text", "required": false }
+    ]
+  },
+  {
+    "slug": "mouse",
+    "name": "Mouse",
+    "active": true,
+    "specificationSchema": [
+      { "key": "sensor", "label": "Sensor", "type": "text", "required": true },
+      { "key": "dpi", "label": "Sensibilidad", "type": "number", "required": true, "unit": "DPI" },
+      { "key": "connectivity", "label": "Conectividad", "type": "text", "required": true },
+      { "key": "weight", "label": "Peso", "type": "number", "required": false, "unit": "g" },
+      { "key": "buttons", "label": "Cantidad de botones", "type": "number", "required": false }
+    ]
+  },
+  {
+    "slug": "audifonos",
+    "name": "Audífonos",
+    "active": true,
+    "specificationSchema": [
+      { "key": "connectivity", "label": "Conectividad", "type": "text", "required": true },
+      { "key": "driver_size", "label": "Tamaño del driver", "type": "number", "required": false, "unit": "mm" },
+      { "key": "microphone", "label": "Micrófono", "type": "boolean", "required": false },
+      { "key": "frequency_response", "label": "Respuesta de frecuencia", "type": "text", "required": false },
+      { "key": "surround_sound", "label": "Sonido envolvente", "type": "select", "required": false, "options": ["Estéreo", "Virtual 7.1", "Dolby Atmos"] }
+    ]
+  }
+]

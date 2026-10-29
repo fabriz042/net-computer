@@ -3,6 +3,8 @@ package com.netcomp.back_main.catalog.category.domain;
 import com.netcomp.back_main.catalog.product.domain.Product;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -26,6 +28,10 @@ public class Category {
 
     @Column(nullable = false)
     private Boolean active = true;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "specification_schema", columnDefinition = "jsonb")
+    private List<CategorySpecificationDefinition> specificationSchema = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -82,6 +88,10 @@ public class Category {
         return active;
     }
 
+    public List<CategorySpecificationDefinition> getSpecificationSchema() {
+        return specificationSchema;
+    }
+
     public List<Product> getProducts() {
         return products;
     }
@@ -105,6 +115,12 @@ public class Category {
 
     public void setActive(Boolean active) {
         this.active = active;
+    }
+
+    public void setSpecificationSchema(List<CategorySpecificationDefinition> specificationSchema) {
+        this.specificationSchema = specificationSchema != null
+                ? new ArrayList<>(specificationSchema)
+                : new ArrayList<>();
     }
 
     public void setProducts(List<Product> products) {

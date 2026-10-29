@@ -7,6 +7,6 @@ export interface AdminSearchQuery {
   hasEmbedding: boolean;
 }
 
-export interface SearchQueryEmbeddingGenerationResponse {
+export interface AdminSearchQueryEmbeddingResponse {
   generatedCount: number;
 }

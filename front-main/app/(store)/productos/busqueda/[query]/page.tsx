@@ -8,7 +8,7 @@ import CatalogProductCard from "@/app/components/store/catalog-product-card";
 import Container from "@/app/components/shared/container";
 import PublicHeader from "@/app/components/layout/public/public-header";
 import PublicFooter from "@/app/components/layout/public/public-footer";
-import { trackEvent } from "@/app/modules/analytics/event/services/event-tracker";
+import { trackPublicEvent } from "@/app/modules/analytics/event/services/public-event-tracker";
 import { listPublicProducts } from "@/app/modules/catalog/product/services/public-product.service";
 import type {
   PublicProduct,
@@ -36,7 +36,7 @@ function ProductSearchContent() {
     if (!query || trackedQueryRef.current === query) return;
 
     trackedQueryRef.current = query;
-    trackEvent("SEARCH", { searchTerm: query, productIds });
+    trackPublicEvent("SEARCH", { searchTerm: query, productIds });
   }, [query]);
 
   useEffect(() => {
@@ -114,7 +114,7 @@ function ProductSearchContent() {
                   key={product.id}
                   product={product}
                   onClick={() =>
-                    trackEvent("CLICK", {
+                    trackPublicEvent("CLICK", {
                       componentId: "search-results-product-list",
                       productId: product.id,
                     })

@@ -1,5 +1,8 @@
-import { sendEvent } from "@/app/modules/analytics/event/services/event.service";
-import { CreateEventRequest, EventType } from "@/app/modules/analytics/event/types/event.type";
+import { sendPublicEvent } from "@/app/modules/analytics/event/services/public-event.service";
+import type {
+  PublicEventCreateRequest,
+  PublicEventType,
+} from "@/app/modules/analytics/event/types/public-event.type";
 
 const SESSION_STORAGE_KEY = "analytics_session_id";
 
@@ -18,14 +21,14 @@ export const getSessionId = (): string => {
   }
 };
 
-/** Dispatches an analytics event immediately to the backend */
-export const trackEvent = (
-  eventType: EventType,
+/** Dispatches a public analytics event immediately to the backend */
+export const trackPublicEvent = (
+  eventType: PublicEventType,
   metadata?: Record<string, unknown>
 ): void => {
   if (typeof window === "undefined") return;
 
-  const event: CreateEventRequest = {
+  const event: PublicEventCreateRequest = {
     sessionId: getSessionId(),
     eventType,
     metadata: {
@@ -34,5 +37,5 @@ export const trackEvent = (
     },
   };
 
-  sendEvent(event);
+  sendPublicEvent(event);
 };

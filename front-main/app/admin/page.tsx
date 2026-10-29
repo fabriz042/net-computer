@@ -18,8 +18,8 @@ import Snackbar, { type SnackbarType } from "@/app/components/ui/snackbar";
 import {
   generateAdminSearchQueryEmbeddings,
   listAdminSearchQueries,
-} from "@/app/modules/analytics/services/admin-search-query.service";
-import type { AdminSearchQuery } from "@/app/modules/analytics/types/analytics.interface";
+} from "@/app/modules/analytics/search-query/services/admin-search-query.service";
+import type { AdminSearchQuery } from "@/app/modules/analytics/search-query/types/admin-search-query.type";
 
 const searchQueryColumns: DataTableColumn<AdminSearchQuery>[] = [
   {

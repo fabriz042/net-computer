@@ -1,5 +1,5 @@
-import api from "../../api.service";
-import { CreateEventRequest } from "../types/analytics.interface";
+import api from "@/app/modules/api.service";
+import { CreateEventRequest } from "@/app/modules/analytics/event/types/event.type";
 
 /** Sends a single analytics event immediately to the backend */
 export const sendEvent = async (event: CreateEventRequest): Promise<void> => {

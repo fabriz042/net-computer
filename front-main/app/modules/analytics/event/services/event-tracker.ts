@@ -1,5 +1,5 @@
-import { sendEvent } from "./analytics.service";
-import { CreateEventRequest, EventType } from "../types/analytics.interface";
+import { sendEvent } from "@/app/modules/analytics/event/services/event.service";
+import { CreateEventRequest, EventType } from "@/app/modules/analytics/event/types/event.type";
 
 const SESSION_STORAGE_KEY = "analytics_session_id";
 

@@ -8,7 +8,7 @@ import CatalogProductCard from "@/app/components/store/catalog-product-card";
 import Container from "@/app/components/shared/container";
 import PublicHeader from "@/app/components/layout/public/public-header";
 import PublicFooter from "@/app/components/layout/public/public-footer";
-import { trackEvent } from "@/app/modules/analytics/services/analytics-tracker";
+import { trackEvent } from "@/app/modules/analytics/event/services/event-tracker";
 import { listPublicProducts } from "@/app/modules/catalog/product/services/public-product.service";
 import type {
   PublicProduct,

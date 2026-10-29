@@ -12,7 +12,9 @@ import java.util.Map;
 import java.util.UUID;
 
 @Entity
-@Table(name = "events")
+@Table(name = "events", indexes = {
+        @Index(name = "idx_events_session_type_created_at", columnList = "session_id, event_type, created_at")
+})
 public class Event {
 
     @Id

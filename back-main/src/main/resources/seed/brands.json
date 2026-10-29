@@ -1,0 +1,13 @@
+[
+  { "slug": "amd", "name": "AMD" },
+  { "slug": "asus", "name": "ASUS" },
+  { "slug": "corsair", "name": "Corsair" },
+  { "slug": "intel", "name": "Intel" },
+  { "slug": "lenovo", "name": "Lenovo" },
+  { "slug": "logitech", "name": "Logitech" },
+  { "slug": "net-custom", "name": "Net Custom" },
+  { "slug": "net-pro", "name": "Net Pro" },
+  { "slug": "nvidia", "name": "NVIDIA" },
+  { "slug": "razer", "name": "Razer" },
+  { "slug": "samsung", "name": "Samsung" }
+]

@@ -10,16 +10,22 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class PublicEventService {
 
+    // Constants
+
+    // Dependencies
     private final EventRepository eventRepository;
 
+    // Constructor
     public PublicEventService(EventRepository eventRepository) {
         this.eventRepository = eventRepository;
     }
 
+    // Public operations
     @Transactional
     public void createEvent(PublicEventCreateRequest request) {
         Event event = new Event(
                 request.sessionId(),
+                request.visitorId(),
                 request.eventType(),
                 null,
                 request.metadata()
@@ -27,4 +33,6 @@ public class PublicEventService {
 
         eventRepository.save(event);
     }
+
+    // Private helpers
 }

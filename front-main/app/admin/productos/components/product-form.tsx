@@ -12,13 +12,23 @@ import SelectField, {
 import { listAdminBrands } from "@/app/modules/catalog/brand/services/admin-brand.service";
 import type { AdminBrand } from "@/app/modules/catalog/brand/types/admin-brand.type";
 import { listAdminCategories } from "@/app/modules/catalog/category/services/admin-category.service";
-import { createAdminProduct } from "@/app/modules/catalog/product/services/admin-product.service";
-import type { AdminProductCreateRequest } from "@/app/modules/catalog/product/types/admin-product.type";
+import {
+  createAdminProduct,
+  updateAdminProduct,
+} from "@/app/modules/catalog/product/services/admin-product.service";
+import type {
+  AdminProductCreateRequest,
+  AdminProductDetail,
+  AdminProductImageDetail,
+  AdminProductUpdateRequest,
+} from "@/app/modules/catalog/product/types/admin-product.type";
 import type { AdminCategory } from "@/app/modules/catalog/category/types/admin-category.type";
 
 interface ProductFormProps {
   onCancel: () => void;
-  onCreated: () => void;
+  onCreated?: () => void;
+  onUpdated?: () => void;
+  initialProduct?: AdminProductDetail;
 }
 
 interface ProductImageDraft {
@@ -28,31 +38,70 @@ interface ProductImageDraft {
   isPrimary: boolean;
 }
 
-type SpecificationInputValue = string | boolean;
+type SpecificationInputValue = string | boolean | undefined;
 
-export default function ProductForm({ onCancel, onCreated }: ProductFormProps) {
+const createImageDrafts = (
+  images?: AdminProductImageDetail[]
+): ProductImageDraft[] => {
+  if (!images || images.length === 0) {
+    return [{ id: 0, imageUrl: "", displayOrder: "0", isPrimary: true }];
+  }
+
+  return images.map((image, index) => ({
+    id: index,
+    imageUrl: image.imageUrl,
+    displayOrder: String(image.displayOrder),
+    isPrimary: image.isPrimary,
+  }));
+};
+
+const createSpecificationInputs = (
+  values: Record<string, unknown> | null | undefined
+): Record<string, SpecificationInputValue> => {
+  const inputs: Record<string, SpecificationInputValue> = {};
+
+  for (const [key, value] of Object.entries(values ?? {})) {
+    if (typeof value === "boolean") {
+      inputs[key] = value;
+    } else if (value !== null && value !== undefined) {
+      inputs[key] = String(value);
+    }
+  }
+
+  return inputs;
+};
+
+export default function ProductForm({
+  onCancel,
+  onCreated,
+  onUpdated,
+  initialProduct,
+}: ProductFormProps) {
+  const isEditMode = initialProduct !== undefined;
   const [brands, setBrands] = useState<AdminBrand[]>([]);
   const [categories, setCategories] = useState<AdminCategory[]>([]);
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [selectedCategorySlug, setSelectedCategorySlug] = useState("");
-  const [selectedBrandId, setSelectedBrandId] = useState("");
-  const [price, setPrice] = useState("");
-  const [stock, setStock] = useState("0");
-  const [active, setActive] = useState(true);
-  const [images, setImages] = useState<ProductImageDraft[]>([
-    { id: 0, imageUrl: "", displayOrder: "0", isPrimary: true },
-  ]);
+  const [name, setName] = useState(initialProduct?.name ?? "");
+  const [slug, setSlug] = useState(initialProduct?.slug ?? "");
+  const [selectedCategorySlug, setSelectedCategorySlug] = useState(
+    initialProduct?.categorySlug ?? ""
+  );
+  const [selectedBrandId, setSelectedBrandId] = useState(initialProduct?.brandId ?? "");
+  const [price, setPrice] = useState(initialProduct ? String(initialProduct.price) : "");
+  const [stock, setStock] = useState(initialProduct ? String(initialProduct.stock) : "0");
+  const [active, setActive] = useState(initialProduct?.active ?? true);
+  const [images, setImages] = useState<ProductImageDraft[]>(() =>
+    createImageDrafts(initialProduct?.images)
+  );
   const [specifications, setSpecifications] = useState<
     Record<string, SpecificationInputValue>
-  >({});
+  >(() => createSpecificationInputs(initialProduct?.specifications));
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [hasCategoryError, setHasCategoryError] = useState(false);
   const [isLoadingBrands, setIsLoadingBrands] = useState(true);
   const [hasBrandError, setHasBrandError] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const nextImageIdRef = useRef(1);
+  const nextImageIdRef = useRef(Math.max(initialProduct?.images.length ?? 1, 1));
 
   useEffect(() => {
     let isCurrent = true;
@@ -84,17 +133,63 @@ export default function ProductForm({ onCancel, onCreated }: ProductFormProps) {
     };
   }, []);
 
-  const productCategories: SelectFieldOption[] = categories.map((category) => ({
-    value: category.slug,
-    label: category.name,
-  }));
-  const productBrands: SelectFieldOption[] = brands.map((brand) => ({
-    value: brand.id,
-    label: brand.name,
-  }));
-  const selectedBrand = brands.find((brand) => brand.id === selectedBrandId);
+  const hasCurrentCategoryOption = Boolean(
+    initialProduct &&
+    selectedCategorySlug === initialProduct.categorySlug &&
+    !categories.some((category) => category.slug === initialProduct.categorySlug)
+  );
+  const productCategories: SelectFieldOption[] = [
+    ...(hasCurrentCategoryOption && initialProduct
+      ? [{
+          value: initialProduct.categorySlug,
+          label: initialProduct.categoryActive
+            ? initialProduct.categoryName
+            : `${initialProduct.categoryName} (inactiva)`,
+        }]
+      : []),
+    ...categories.map((category) => ({
+      value: category.slug,
+      label: category.name,
+    })),
+  ];
+  const hasCurrentBrandOption = Boolean(
+    initialProduct?.brandId &&
+    selectedBrandId === initialProduct.brandId &&
+    !brands.some((brand) => brand.id === initialProduct.brandId)
+  );
+  const productBrands: SelectFieldOption[] = [
+    ...(hasCurrentBrandOption && initialProduct?.brandId
+      ? [{
+          value: initialProduct.brandId,
+          label: initialProduct.brandName ?? "Marca actual",
+        }]
+      : []),
+    ...brands.map((brand) => ({
+      value: brand.id,
+      label: brand.name,
+    })),
+  ];
+  const selectedBrand = brands.find((brand) => brand.id === selectedBrandId) ?? (
+    hasCurrentBrandOption && initialProduct?.brandId
+      ? {
+          id: initialProduct.brandId,
+          name: initialProduct.brandName ?? "Marca actual",
+          slug: "",
+        }
+      : undefined
+  );
   const selectedCategory = categories.find(
     (category) => category.slug === selectedCategorySlug
+  ) ?? (
+    initialProduct?.categorySlug === selectedCategorySlug
+      ? {
+          id: initialProduct.categoryId,
+          slug: initialProduct.categorySlug,
+          name: initialProduct.categoryName,
+          active: initialProduct.categoryActive,
+          specificationSchema: initialProduct.specificationSchema,
+        }
+      : undefined
   );
   const specificationSchema = selectedCategory?.specificationSchema ?? [];
 
@@ -152,7 +247,7 @@ export default function ProductForm({ onCancel, onCreated }: ProductFormProps) {
       setSubmitError("Selecciona una categoría activa.");
       return;
     }
-    if (!selectedBrand) {
+    if (!isEditMode && !selectedBrand) {
       setSubmitError("Selecciona una marca.");
       return;
     }
@@ -169,10 +264,14 @@ export default function ProductForm({ onCancel, onCreated }: ProductFormProps) {
       return;
     }
 
-    const productSpecifications: AdminProductCreateRequest["specifications"] = {};
+    const productSpecifications: AdminProductUpdateRequest["specifications"] = {};
     for (const definition of specificationSchema) {
       const value = specifications[definition.key];
       if (definition.type === "boolean") {
+        if (isEditMode && !definition.required && value === undefined) {
+          productSpecifications[definition.key] = null;
+          continue;
+        }
         productSpecifications[definition.key] = value === true;
         continue;
       }
@@ -183,6 +282,7 @@ export default function ProductForm({ onCancel, onCreated }: ProductFormProps) {
           setSubmitError(`Completa la especificación “${definition.label}”.`);
           return;
         }
+        if (isEditMode) productSpecifications[definition.key] = null;
         continue;
       }
 
@@ -241,26 +341,37 @@ export default function ProductForm({ onCancel, onCreated }: ProductFormProps) {
       productImages[0].isPrimary = true;
     }
 
-    const request: AdminProductCreateRequest = {
+    const request = {
       name: name.trim(),
       slug: slug.trim() || undefined,
       price: productPrice,
       stock: productStock,
       active,
       categorySlug: selectedCategory.slug,
-      brandId: selectedBrand.id,
       images: productImages,
       specifications: productSpecifications,
     };
 
     setIsSaving(true);
     let wasCreated = false;
+    let wasUpdated = false;
     try {
-      await createAdminProduct(request);
-      wasCreated = true;
+      if (initialProduct) {
+        await updateAdminProduct(initialProduct.id, {
+          ...request,
+          brandId: selectedBrand?.id ?? null,
+        } satisfies AdminProductUpdateRequest);
+        wasUpdated = true;
+      } else if (selectedBrand) {
+        await createAdminProduct({
+          ...request,
+          brandId: selectedBrand.id,
+        } satisfies AdminProductCreateRequest);
+        wasCreated = true;
+      }
     } catch (error) {
       if (isAxiosError(error) && error.response?.status === 409) {
-        setSubmitError("Ya existe un producto con ese slug. Cambia el nombre o el slug.");
+        setSubmitError("Ya existe otro producto con ese slug. Cambia el nombre o el slug.");
       } else {
         const responseData = isAxiosError(error)
           ? error.response?.data as {
@@ -283,7 +394,8 @@ export default function ProductForm({ onCancel, onCreated }: ProductFormProps) {
       }
     } finally {
       setIsSaving(false);
-      if (wasCreated) onCreated();
+      if (wasCreated) onCreated?.();
+      if (wasUpdated) onUpdated?.();
     }
   };
 
@@ -338,12 +450,18 @@ export default function ProductForm({ onCancel, onCreated }: ProductFormProps) {
                 ? "Cargando marcas..."
                 : hasBrandError
                   ? "Marcas no disponibles"
-                  : brands.length === 0
+                  : isEditMode
+                    ? "Sin marca"
+                    : brands.length === 0
                     ? "No hay marcas disponibles"
                     : "Selecciona una marca"
             }
-            required
-            disabled={isLoadingBrands || hasBrandError || brands.length === 0}
+            required={!isEditMode}
+            disabled={
+              isLoadingBrands ||
+              hasBrandError ||
+              (!isEditMode && brands.length === 0)
+            }
             value={selectedBrandId}
             onChange={setSelectedBrandId}
           />
@@ -466,6 +584,34 @@ export default function ProductForm({ onCancel, onCreated }: ProductFormProps) {
                 const value = specifications[specification.key];
 
                 if (specification.type === "boolean") {
+                  if (isEditMode && !specification.required) {
+                    const booleanValue = value === undefined
+                      ? ""
+                      : value
+                        ? "true"
+                        : "false";
+
+                    return (
+                      <SelectField
+                        id={id}
+                        key={specification.key}
+                        label={label}
+                        options={[
+                          { value: "true", label: "Sí" },
+                          { value: "false", label: "No" },
+                        ]}
+                        placeholder="Sin especificar"
+                        value={booleanValue}
+                        onChange={(nextValue) =>
+                          updateSpecification(
+                            specification.key,
+                            nextValue === "" ? undefined : nextValue === "true"
+                          )
+                        }
+                      />
+                    );
+                  }
+
                   return (
                     <div className="flex items-end pb-2" key={specification.key}>
                       <CheckboxField
@@ -543,6 +689,12 @@ export default function ProductForm({ onCancel, onCreated }: ProductFormProps) {
         </p>
       )}
 
+      {isEditMode && (
+        <p className="m-0 text-sm text-[#647895]" role="status">
+          Los campos opcionales sin valor se quitarán del producto al guardar.
+        </p>
+      )}
+
       <div className="flex justify-end gap-2 border-t border-[#e0e6ef] pt-4">
         <Button type="button" size="small" variant="outline" onClick={onCancel}>
           Cancelar
@@ -557,11 +709,15 @@ export default function ProductForm({ onCancel, onCreated }: ProductFormProps) {
             !selectedCategory ||
             isLoadingBrands ||
             hasBrandError ||
-            !selectedBrand
+            (!isEditMode && !selectedBrand)
           }
           onClick={() => void handleSave()}
         >
-          {isSaving ? "Guardando..." : "Guardar Producto"}
+          {isSaving
+            ? "Guardando..."
+            : isEditMode
+              ? "Guardar cambios"
+              : "Guardar Producto"}
         </Button>
       </div>
     </div>

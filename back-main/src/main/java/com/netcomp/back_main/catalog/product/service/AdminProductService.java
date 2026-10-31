@@ -9,6 +9,8 @@ import com.netcomp.back_main.catalog.category.repository.CategoryRepository;
 import com.netcomp.back_main.catalog.product.api.request.AdminProductSearchRequest;
 import com.netcomp.back_main.catalog.product.api.request.AdminProductImageCreateRequest;
 import com.netcomp.back_main.catalog.product.api.request.AdminProductCreateRequest;
+import com.netcomp.back_main.catalog.product.api.request.AdminProductUpdateRequest;
+import com.netcomp.back_main.catalog.product.api.response.AdminProductDetailResponse;
 import com.netcomp.back_main.catalog.product.api.response.AdminProductResponse;
 import com.netcomp.back_main.catalog.product.api.response.AdminProductEmbeddingResponse;
 import com.netcomp.back_main.catalog.product.domain.Product;
@@ -31,11 +33,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -61,10 +65,10 @@ public class AdminProductService {
             BrandRepository brandRepository,
             BedrockEmbeddingService bedrockEmbeddingService
     ) {
-        this.productRepository = productRepository;
-        this.categoryRepository = categoryRepository;
-        this.brandRepository = brandRepository;
-        this.bedrockEmbeddingService = bedrockEmbeddingService;
+            this.productRepository = productRepository;
+            this.categoryRepository = categoryRepository;
+            this.brandRepository = brandRepository;
+            this.bedrockEmbeddingService = bedrockEmbeddingService;
     }
 
     // --- Public operations ---
@@ -73,13 +77,90 @@ public class AdminProductService {
                 request.resolvedPage() - 1,
                 request.resolvedPerPage()
         );
-        String sortOrder = "asc".equalsIgnoreCase(request.order()) ? "asc" : "desc";
+        String sortOrder = "asc".equals(request.order()) ? "asc" : "desc";
         String search = StringUtils.trimToEmpty(request.search());
         String categorySlug = StringUtils.isBlank(request.categorySlug())
                 ? null
                 : StringUtils.trim(request.categorySlug());
         Page<Product> page = productRepository.searchAdminProducts(search, categorySlug, sortOrder, pageable);
         return PageResponse.from(page, AdminProductResponse::from);
+    }
+
+    public AdminProductDetailResponse getProduct(UUID productId) {
+        Product product = productRepository.findAdminDetailsById(productId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Producto no encontrado."
+                ));
+        return AdminProductDetailResponse.from(product);
+    }
+
+    @Transactional
+    public AdminProductDetailResponse updateProduct(UUID productId, AdminProductUpdateRequest request) {
+        Product product = productRepository.findAdminDetailsById(productId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Producto no encontrado."
+                ));
+
+        String name = request.name().trim();
+        String requestedSlug = request.slug() == null ? "" : request.slug().trim();
+        String slug = SlugUtils.generate(requestedSlug.isEmpty() ? name : requestedSlug);
+        if (slug.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "No se pudo generar un slug válido para el producto."
+            );
+        }
+        if (productRepository.existsBySlugAndIdNot(slug, productId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Ya existe un producto con ese slug."
+            );
+        }
+
+        String categorySlug = request.categorySlug().trim();
+        Category currentCategory = product.getCategory();
+        Category category = currentCategory != null
+                && currentCategory.getSlug().equals(categorySlug)
+                ? currentCategory
+                : categoryRepository.findBySlugAndActiveTrue(categorySlug)
+                        .orElseThrow(() -> new ResponseStatusException(
+                                HttpStatus.BAD_REQUEST,
+                                "La categoría seleccionada no existe o está inactiva."
+                        ));
+        Brand brand = request.brandId() == null
+                ? null
+                : brandRepository.findById(request.brandId())
+                        .orElseThrow(() -> new ResponseStatusException(
+                                HttpStatus.BAD_REQUEST,
+                                "La marca seleccionada no existe."
+                        ));
+        Map<String, Object> specifications = validateSpecifications(
+                category,
+                request.specifications()
+        );
+
+        product.setName(name);
+        product.setSlug(slug);
+        product.setPrice(request.price());
+        product.setStock(request.stock());
+        product.setActive(request.active());
+        product.setCategory(category);
+        product.setBrand(brand);
+        product.setSpecifications(specifications);
+        replaceImages(product, request.images());
+
+        Product updatedProduct;
+        try {
+            updatedProduct = productRepository.save(product);
+        } catch (DataAccessException exception) {
+            LOGGER.error("Failed to update product. id={}, slug={}", productId, slug, exception);
+            throw exception;
+        }
+
+        LOGGER.info("Product updated. id={}, slug={}", updatedProduct.getId(), slug);
+        return AdminProductDetailResponse.from(updatedProduct);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -147,17 +228,6 @@ public class AdminProductService {
         List<AdminProductImageCreateRequest> requestedImages = request.images() == null
                 ? List.of()
                 : request.images();
-        long primaryImageCount = requestedImages.stream()
-                .filter(image -> Boolean.TRUE.equals(image.isPrimary()))
-                .count();
-
-        if (primaryImageCount > 1) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Solo una imagen puede ser la imagen principal."
-            );
-        }
-
         Product product = new Product(
                 category,
                 brand,
@@ -170,17 +240,7 @@ public class AdminProductService {
                 specifications
         );
 
-        for (int index = 0; index < requestedImages.size(); index++) {
-            AdminProductImageCreateRequest image = requestedImages.get(index);
-            boolean isPrimary = primaryImageCount == 0
-                    ? index == 0
-                    : Boolean.TRUE.equals(image.isPrimary());
-            product.addImage(new ProductImage(
-                    validateImageUrl(image.imageUrl()),
-                    isPrimary,
-                    image.displayOrder()
-            ));
-        }
+        addImages(product, requestedImages);
 
         Product savedProduct;
         try {
@@ -195,6 +255,39 @@ public class AdminProductService {
     }
 
     // --- Private helpers ---
+    private void replaceImages(Product product, List<AdminProductImageCreateRequest> requestedImages) {
+        List<ProductImage> currentImages = new ArrayList<>(product.getImages());
+        for (ProductImage image : currentImages) {
+            product.removeImage(image);
+        }
+        addImages(product, requestedImages);
+    }
+
+    private void addImages(Product product, List<AdminProductImageCreateRequest> requestedImages) {
+        long primaryImageCount = requestedImages.stream()
+                .filter(image -> Boolean.TRUE.equals(image.isPrimary()))
+                .count();
+
+        if (primaryImageCount > 1) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Solo una imagen puede ser la imagen principal."
+            );
+        }
+
+        for (int index = 0; index < requestedImages.size(); index++) {
+            AdminProductImageCreateRequest image = requestedImages.get(index);
+            boolean isPrimary = primaryImageCount == 0
+                    ? index == 0
+                    : Boolean.TRUE.equals(image.isPrimary());
+            product.addImage(new ProductImage(
+                    validateImageUrl(image.imageUrl()),
+                    isPrimary,
+                    image.displayOrder()
+            ));
+        }
+    }
+
     private List<List<Float>> requestEmbeddings(List<String> productTexts) {
         try {
             return bedrockEmbeddingService.generateEmbeddings(productTexts, INPUT_TYPE);

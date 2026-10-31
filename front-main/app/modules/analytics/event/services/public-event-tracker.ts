@@ -1,4 +1,5 @@
 import { sendPublicEvent } from "@/app/modules/analytics/event/services/public-event.service";
+import { getAnalyticsUserId } from "@/app/modules/analytics/services/analytics-user-id-storage";
 import type {
   PublicEventCreateRequest,
   PublicEventType,
@@ -30,6 +31,7 @@ export const trackPublicEvent = (
 
   const event: PublicEventCreateRequest = {
     sessionId: getSessionId(),
+    visitorId: getAnalyticsUserId(),
     eventType,
     metadata: {
       page: window.location.pathname,

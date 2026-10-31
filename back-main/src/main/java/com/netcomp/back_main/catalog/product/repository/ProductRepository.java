@@ -20,17 +20,20 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     @Query(value = "SELECT EXISTS (SELECT 1 FROM products WHERE slug = :slug)", nativeQuery = true)
     boolean existsBySlug(@Param("slug") String slug);
 
+    boolean existsBySlugAndIdNot(String slug, UUID id);
+
     @EntityGraph(attributePaths = {"category", "images", "brand"})
-    @Query(value = "SELECT * FROM products WHERE slug = :slug AND active = TRUE", nativeQuery = true)
-    Optional<Product> findBySlugAndActiveTrue(@Param("slug") String slug);
+    Optional<Product> findBySlugAndActiveTrue(String slug);
 
     @EntityGraph(attributePaths = {"category", "brand"})
-    @Query(value = "SELECT * FROM products WHERE embedding IS NULL ORDER BY created_at ASC", nativeQuery = true)
     List<Product> findAllByEmbeddingIsNullOrderByCreatedAtAsc();
 
+    @EntityGraph(attributePaths = {"category", "brand", "images"})
+    @Query("SELECT product FROM Product product WHERE product.id = :productId")
+    Optional<Product> findAdminDetailsById(@Param("productId") UUID productId);
+
     @EntityGraph(attributePaths = {"category", "images", "brand"})
-    @Query(value = "SELECT * FROM products WHERE id IN (:ids)", nativeQuery = true)
-    List<Product> findAllByIdIn(@Param("ids") List<UUID> ids);
+    List<Product> findAllByIdIn(List<UUID> ids);
 
     @Modifying
     @Query(value = "UPDATE products SET category_id = :categoryId " +
@@ -84,13 +87,9 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
             Pageable pageable
     );
 
-    @EntityGraph(attributePaths = {"category", "images", "brand"})
-    @Query(value = "SELECT * FROM products WHERE active = TRUE",
-            countQuery = "SELECT COUNT(*) FROM products WHERE active = TRUE",
-            nativeQuery = true)
+    @EntityGraph(attributePaths = {"category", "brand"})
     Page<Product> findByActiveTrue(Pageable pageable);
 
-    @EntityGraph(attributePaths = {"category", "images", "brand"})
     @Query(value = """
             SELECT product.*
             FROM products product

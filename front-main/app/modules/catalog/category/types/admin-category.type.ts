@@ -20,3 +20,14 @@ export interface AdminCategory {
   active: boolean;
   specificationSchema: CategorySpecificationDefinition[];
 }
+
+export interface AdminCategoryListParams {
+  includeInactive?: boolean;
+}
+
+export interface AdminCategoryRequest {
+  name: string;
+  slug?: string;
+  active: boolean;
+  specificationSchema?: CategorySpecificationDefinition[];
+}

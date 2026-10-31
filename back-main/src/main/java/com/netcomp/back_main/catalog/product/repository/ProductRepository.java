@@ -20,11 +20,17 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     @Query(value = "SELECT EXISTS (SELECT 1 FROM products WHERE slug = :slug)", nativeQuery = true)
     boolean existsBySlug(@Param("slug") String slug);
 
+    boolean existsBySlugAndIdNot(String slug, UUID id);
+
     @EntityGraph(attributePaths = {"category", "images", "brand"})
     Optional<Product> findBySlugAndActiveTrue(String slug);
 
     @EntityGraph(attributePaths = {"category", "brand"})
     List<Product> findAllByEmbeddingIsNullOrderByCreatedAtAsc();
+
+    @EntityGraph(attributePaths = {"category", "brand", "images"})
+    @Query("SELECT product FROM Product product WHERE product.id = :productId")
+    Optional<Product> findAdminDetailsById(@Param("productId") UUID productId);
 
     @EntityGraph(attributePaths = {"category", "images", "brand"})
     List<Product> findAllByIdIn(List<UUID> ids);

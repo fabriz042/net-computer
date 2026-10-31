@@ -9,12 +9,16 @@ import com.netcomp.back_main.common.api.response.PageResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/admin/products")
@@ -27,15 +31,19 @@ public class AdminProductController {
     }
 
     @GetMapping
-    public ResponseEntity<PageResponse<AdminProductResponse>> list(
-            @Valid @ModelAttribute AdminProductSearchRequest request
-    ) {
+    public ResponseEntity<PageResponse<AdminProductResponse>> list(@Valid @ModelAttribute AdminProductSearchRequest request) {
         return ResponseEntity.ok(productService.getProducts(request));
     }
 
     @PostMapping
     public ResponseEntity<AdminProductResponse> create(@Valid @RequestBody AdminProductCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(productService.createProduct(request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deactivate(@PathVariable UUID id) {
+        productService.deactivateProduct(id);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/embeddings")

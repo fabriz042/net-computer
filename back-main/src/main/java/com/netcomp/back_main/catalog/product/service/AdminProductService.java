@@ -36,6 +36,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -192,6 +193,21 @@ public class AdminProductService {
 
         LOGGER.info("Product created. id={}, slug={}", savedProduct.getId(), slug);
         return AdminProductResponse.from(savedProduct);
+    }
+
+    @Transactional
+    public void deactivateProduct(UUID productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Producto no encontrado."
+                ));
+
+        if (!Boolean.FALSE.equals(product.getActive())) {
+            product.setActive(false);
+            productRepository.save(product);
+            LOGGER.info("Product deactivated. id={}, slug={}", product.getId(), product.getSlug());
+        }
     }
 
     // --- Private helpers ---

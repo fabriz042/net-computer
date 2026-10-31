@@ -7,6 +7,10 @@ import type {
   AdminProductEmbeddingResponse,
 } from "../types/admin-product.type";
 
+export const deactivateAdminProduct = async (productId: string): Promise<void> => {
+  await api.delete<void>(`/admin/products/${productId}`);
+};
+
 export const createAdminProduct = async (
   request: AdminProductCreateRequest
 ): Promise<AdminProduct> => {

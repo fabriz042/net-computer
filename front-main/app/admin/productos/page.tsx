@@ -15,6 +15,7 @@ import SearchInput from "@/app/components/ui/search-input";
 import Snackbar, { type SnackbarType } from "@/app/components/ui/snackbar";
 import useDebounce from "@/app/hooks/use-debounce";
 import {
+  deactivateAdminProduct,
   generateAdminProductEmbeddings,
   listAdminProducts,
 } from "@/app/modules/catalog/product/services/admin-product.service";
@@ -79,7 +80,10 @@ const statusOptions: FilterOption[] = [
   { value: "out-of-stock", label: "Agotado" },
 ];
 
-const productColumns: DataTableColumn<AdminProduct>[] = [
+const buildProductColumns = (
+  onDeactivateProduct: (product: AdminProduct) => void,
+  deactivatingProductId: string | null
+): DataTableColumn<AdminProduct>[] => [
   {
     id: "product",
     label: "Producto",
@@ -186,9 +190,13 @@ const productColumns: DataTableColumn<AdminProduct>[] = [
             inline-flex h-7 w-7 items-center justify-center
             text-red-500
             rounded transition hover:bg-red-50 hover:text-red-700
+            disabled:opacity-40
           "
           type="button"
-          aria-label={`Eliminar ${product.name}`}
+          disabled={!product.active || deactivatingProductId !== null}
+          onClick={() => onDeactivateProduct(product)}
+          aria-label={`Desactivar ${product.name}`}
+          title={product.active ? `Desactivar ${product.name}` : `${product.name} ya está inactivo`}
         >
           <FiTrash2 aria-hidden="true" className="h-4 w-4" />
         </button>
@@ -203,7 +211,8 @@ export default function AdminProductsPage() {
   const debouncedSearch = useDebounce(searchValue.trim(), 200);
   const [isNewProductDialogOpen, setIsNewProductDialogOpen] = useState(false);
   const [isGeneratingEmbeddings, setIsGeneratingEmbeddings] = useState(false);
-  const [embeddingSnackbar, setEmbeddingSnackbar] = useState<{
+  const [deactivatingProductId, setDeactivatingProductId] = useState<string | null>(null);
+  const [snackbar, setSnackbar] = useState<{
     type: SnackbarType;
     text: string;
   } | null>(null);
@@ -242,11 +251,11 @@ export default function AdminProductsPage() {
 
   const handleGenerateEmbeddings = useCallback(async () => {
     setIsGeneratingEmbeddings(true);
-    setEmbeddingSnackbar(null);
+    setSnackbar(null);
 
     try {
       const result = await generateAdminProductEmbeddings();
-      setEmbeddingSnackbar({
+      setSnackbar({
         type: result.generatedCount === 0 ? "warning" : "success",
         text: result.generatedCount === 0
           ? "Todos los productos ya tienen embeddings."
@@ -254,7 +263,7 @@ export default function AdminProductsPage() {
       });
       await loadProducts(page, debouncedSearch);
     } catch {
-      setEmbeddingSnackbar({
+      setSnackbar({
         type: "error",
         text: "No se pudieron generar los embeddings.",
       });
@@ -262,6 +271,23 @@ export default function AdminProductsPage() {
       setIsGeneratingEmbeddings(false);
     }
   }, [debouncedSearch, loadProducts, page]);
+
+  const handleDeactivateProduct = useCallback(async (product: AdminProduct) => {
+    if (!product.active || deactivatingProductId !== null) return;
+
+    setDeactivatingProductId(product.id);
+    setSnackbar(null);
+
+    try {
+      await deactivateAdminProduct(product.id);
+      setSnackbar({ type: "success", text: "Producto desactivado." });
+      await loadProducts(page, debouncedSearch);
+    } catch {
+      setSnackbar({ type: "error", text: "No se pudo desactivar el producto." });
+    } finally {
+      setDeactivatingProductId(null);
+    }
+  }, [debouncedSearch, deactivatingProductId, loadProducts, page]);
 
   const handleProductCreated = useCallback(() => {
     setIsNewProductDialogOpen(false);
@@ -320,11 +346,11 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {embeddingSnackbar && (
+      {snackbar && (
         <Snackbar
-          key={`${embeddingSnackbar.type}-${embeddingSnackbar.text}`}
-          type={embeddingSnackbar.type}
-          text={embeddingSnackbar.text}
+          key={`${snackbar.type}-${snackbar.text}`}
+          type={snackbar.type}
+          text={snackbar.text}
         />
       )}
 
@@ -368,7 +394,7 @@ export default function AdminProductsPage() {
       )}
 
       <DataTable
-        columns={productColumns}
+        columns={buildProductColumns(handleDeactivateProduct, deactivatingProductId)}
         rows={isLoading ? [] : products}
         getRowKey={(product) => product.id}
         summary={summary}

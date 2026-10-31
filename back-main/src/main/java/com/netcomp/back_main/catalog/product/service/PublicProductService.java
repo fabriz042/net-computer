@@ -50,7 +50,7 @@ public class PublicProductService {
                 request.resolvedPage() - 1,
                 request.resolvedPerPage()
         );
-        String sortOrder = "asc".equalsIgnoreCase(request.order()) ? "asc" : "desc";
+        String sortOrder = "asc".equals(request.order()) ? "asc" : "desc";
         String search = StringUtils.trimToEmpty(request.search());
         String categorySlug = StringUtils.isBlank(request.categorySlug())
                 ? null
@@ -83,6 +83,10 @@ public class PublicProductService {
             return productRepository.searchActiveProducts(search, categorySlug, sortOrder, pageable);
         }
 
+        return searchActiveProductsByEmbedding(queryEmbedding, categorySlug, pageable);
+    }
+
+    private Page<Product> searchActiveProductsByEmbedding( float[] queryEmbedding, String categorySlug, Pageable pageable) {
         Pageable vectorPageable = PageRequest.of(0, MAX_VECTOR_SEARCH_RESULTS);
         List<UUID> nearestProductIds = productRepository.searchActiveProductIdsByEmbedding(
                 toVectorLiteral(queryEmbedding),

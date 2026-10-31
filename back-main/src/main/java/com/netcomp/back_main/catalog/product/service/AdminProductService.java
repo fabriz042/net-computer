@@ -61,10 +61,10 @@ public class AdminProductService {
             BrandRepository brandRepository,
             BedrockEmbeddingService bedrockEmbeddingService
     ) {
-        this.productRepository = productRepository;
-        this.categoryRepository = categoryRepository;
-        this.brandRepository = brandRepository;
-        this.bedrockEmbeddingService = bedrockEmbeddingService;
+            this.productRepository = productRepository;
+            this.categoryRepository = categoryRepository;
+            this.brandRepository = brandRepository;
+            this.bedrockEmbeddingService = bedrockEmbeddingService;
     }
 
     // --- Public operations ---
@@ -73,7 +73,7 @@ public class AdminProductService {
                 request.resolvedPage() - 1,
                 request.resolvedPerPage()
         );
-        String sortOrder = "asc".equalsIgnoreCase(request.order()) ? "asc" : "desc";
+        String sortOrder = "asc".equals(request.order()) ? "asc" : "desc";
         String search = StringUtils.trimToEmpty(request.search());
         String categorySlug = StringUtils.isBlank(request.categorySlug())
                 ? null

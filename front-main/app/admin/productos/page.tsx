@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FiCpu, FiEdit2, FiImage, FiPlus } from "react-icons/fi";
+import { FiCpu, FiDownload, FiEdit2, FiImage, FiPlus } from "react-icons/fi";
 import DataTable, {
   type DataTableColumn,
 } from "@/app/components/ui/data-table";
@@ -15,7 +15,9 @@ import FilterSelect, {
 import SearchInput from "@/app/components/ui/search-input";
 import Snackbar, { type SnackbarType } from "@/app/components/ui/snackbar";
 import useDebounce from "@/app/hooks/use-debounce";
+import { getApiErrorMessage } from "@/app/modules/api-error.service";
 import {
+  exportAdminProducts,
   generateAdminProductEmbeddings,
   listAdminProducts,
 } from "@/app/modules/catalog/product/services/admin-product.service";
@@ -27,6 +29,17 @@ import type {
 type ProductStatus = "active" | "inactive";
 
 const pageSize = 12;
+
+const downloadBlob = (blob: Blob, fileName: string) => {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
 
 const statusLabels: Record<ProductStatus, string> = {
   active: "Activo",
@@ -187,6 +200,7 @@ export default function AdminProductsPage() {
   const [isNewProductDialogOpen, setIsNewProductDialogOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [isGeneratingEmbeddings, setIsGeneratingEmbeddings] = useState(false);
+  const [isExportingProducts, setIsExportingProducts] = useState(false);
   const [snackbar, setSnackbar] = useState<{
     type: SnackbarType;
     text: string;
@@ -261,6 +275,24 @@ export default function AdminProductsPage() {
     }
   }, [debouncedSearch, loadProducts, page]);
 
+  const handleExportProducts = useCallback(async () => {
+    setIsExportingProducts(true);
+    setSnackbar(null);
+
+    try {
+      const { blob, fileName } = await exportAdminProducts();
+      downloadBlob(blob, fileName);
+      setSnackbar({ type: "success", text: "Reporte de productos descargado." });
+    } catch (error) {
+      setSnackbar({
+        type: "error",
+        text: getApiErrorMessage(error, "No se pudo exportar el reporte de productos."),
+      });
+    } finally {
+      setIsExportingProducts(false);
+    }
+  }, []);
+
   const handleProductCreated = useCallback(() => {
     setIsNewProductDialogOpen(false);
     if (page !== 1) {
@@ -302,6 +334,15 @@ export default function AdminProductsPage() {
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2 self-start">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleExportProducts}
+            disabled={isExportingProducts}
+          >
+            <FiDownload aria-hidden="true" className="h-3.5 w-3.5" />
+            {isExportingProducts ? "Exportando..." : "Exportar Excel"}
+          </Button>
           <Button
             type="button"
             variant="outline"

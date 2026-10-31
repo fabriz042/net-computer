@@ -3,6 +3,7 @@ package com.netcomp.back_main.orders.order.domain;
 import com.netcomp.back_main.orders.payment.domain.Payment;
 import com.netcomp.back_main.users.user.domain.User;
 import jakarta.persistence.*;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
@@ -42,6 +43,7 @@ public class Order {
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private Payment payment;
 
+    @BatchSize(size = 50)
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items = new ArrayList<>();
 

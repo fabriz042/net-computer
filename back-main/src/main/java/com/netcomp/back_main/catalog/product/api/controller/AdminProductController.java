@@ -6,10 +6,14 @@ import com.netcomp.back_main.catalog.product.api.request.AdminProductUpdateReque
 import com.netcomp.back_main.catalog.product.api.response.AdminProductEmbeddingResponse;
 import com.netcomp.back_main.catalog.product.api.response.AdminProductDetailResponse;
 import com.netcomp.back_main.catalog.product.api.response.AdminProductResponse;
+import com.netcomp.back_main.catalog.product.service.AdminProductReportService;
 import com.netcomp.back_main.catalog.product.service.AdminProductService;
 import com.netcomp.back_main.common.api.response.PageResponse;
 import jakarta.validation.Valid;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -26,15 +30,38 @@ import java.util.UUID;
 @RequestMapping("/admin/products")
 public class AdminProductController {
 
-    private final AdminProductService productService;
+    private static final MediaType XLSX_MEDIA_TYPE = MediaType.parseMediaType(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
 
-    public AdminProductController(AdminProductService productService) {
+    private final AdminProductService productService;
+    private final AdminProductReportService productReportService;
+
+    public AdminProductController(
+            AdminProductService productService,
+            AdminProductReportService productReportService
+    ) {
         this.productService = productService;
+        this.productReportService = productReportService;
     }
 
     @GetMapping
     public ResponseEntity<PageResponse<AdminProductResponse>> list(@Valid @ModelAttribute AdminProductSearchRequest request) {
         return ResponseEntity.ok(productService.getProducts(request));
+    }
+
+    @GetMapping("/export")
+    public ResponseEntity<byte[]> export() {
+        byte[] report = productReportService.exportProducts();
+        ContentDisposition disposition = ContentDisposition.attachment()
+                .filename(productReportService.buildFileName())
+                .build();
+
+        return ResponseEntity.ok()
+                .contentType(XLSX_MEDIA_TYPE)
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .contentLength(report.length)
+                .body(report);
     }
 
     @GetMapping("/{id}")

@@ -45,6 +45,18 @@ export const listAdminProducts = async (
   return response.data;
 };
 
+export const exportAdminProducts = async (): Promise<{ blob: Blob; fileName: string }> => {
+  const response = await api.get<Blob>("/admin/products/export", {
+    responseType: "blob",
+    timeout: 60000,
+  });
+  const contentDisposition = response.headers["content-disposition"] as string | undefined;
+  const fileName = contentDisposition?.match(/filename="?([^";]+)"?/i)?.[1]
+    ?? "reporte-productos.xlsx";
+
+  return { blob: response.data, fileName };
+};
+
 export const generateAdminProductEmbeddings = async (): Promise<AdminProductEmbeddingResponse> => {
   const response = await api.post<AdminProductEmbeddingResponse>(
     "/admin/products/embeddings",

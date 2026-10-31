@@ -2,10 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { FiMinus, FiPlus, FiShoppingBag } from "react-icons/fi";
 import Button from "@/app/components/ui/button";
+import Snackbar, { type SnackbarType } from "@/app/components/ui/snackbar";
+import { useCart } from "@/app/hooks/use-cart";
 import Breadcrumbs from "@/app/components/shared/breadcrumbs";
 import Container from "@/app/components/shared/container";
 import PublicHeader from "@/app/components/layout/public/public-header";
@@ -15,6 +17,7 @@ import {
   listPublicProducts,
 } from "@/app/modules/catalog/product/services/public-product.service";
 import type { PublicProduct } from "@/app/modules/catalog/product/types/public-product.type";
+import type { CartProductSnapshot } from "@/app/modules/users/cart/types/cart.type";
 
 const specificationLabels: Record<string, string> = {
   processor: "Procesador",
@@ -74,6 +77,17 @@ const formatSpecificationValue = (value: unknown): string => {
   }
   return String(value);
 };
+
+const toCartProduct = (product: PublicProduct): CartProductSnapshot => ({
+  productId: product.id,
+  productName: product.name,
+  productSlug: product.slug,
+  categorySlug: product.categorySlug,
+  brandName: product.brandName,
+  imageUrl: product.primaryImageUrl ?? product.images[0] ?? null,
+  unitPrice: product.price,
+  availableStock: product.stock,
+});
 
 function StorePageShell({ children }: { children: ReactNode }) {
   return (
@@ -136,6 +150,12 @@ function RecommendedProductCard({
 
 function ProductDetailContent() {
   const { category, slug } = useParams<{ category: string; slug: string }>();
+  const router = useRouter();
+  const { addItem, pendingProductId } = useCart();
+  const [cartFeedback, setCartFeedback] = useState<{
+    type: SnackbarType;
+    text: string;
+  } | null>(null);
   const [product, setProduct] = useState<PublicProduct | null>(null);
   const [recommendations, setRecommendations] = useState<PublicProduct[]>([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -238,10 +258,40 @@ function ProductDetailContent() {
     ([, value]) => value !== null && value !== undefined
   );
   const hasStock = product.stock > 0;
+  const isAddingToCart = pendingProductId === product.id;
+
+  const handleAddToCart = async (goToCart: boolean) => {
+    setCartFeedback(null);
+    try {
+      await addItem(toCartProduct(product), quantity);
+      if (goToCart) {
+        router.push("/carrito");
+        return;
+      }
+      setCartFeedback({
+        type: "success",
+        text: quantity === 1
+          ? "Producto añadido al carrito."
+          : `${quantity} unidades añadidas al carrito.`,
+      });
+    } catch (error) {
+      setCartFeedback({
+        type: "error",
+        text: error instanceof Error ? error.message : "No se pudo añadir el producto al carrito.",
+      });
+    }
+  };
 
   return (
     <StorePageShell>
       <main className="px-4 pb-10 pt-6 sm:px-6 min-[761px]:px-[clamp(24px,4.1vw,50px)]">
+        {cartFeedback && (
+          <Snackbar
+            key={`${cartFeedback.type}-${cartFeedback.text}`}
+            type={cartFeedback.type}
+            text={cartFeedback.text}
+          />
+        )}
         <Breadcrumbs
           items={[
             { label: "Inicio", href: "/" },
@@ -361,7 +411,12 @@ function ProductDetailContent() {
                   <FiPlus aria-hidden="true" />
                 </button>
               </div>
-              <Button size="large" disabled={!hasStock}>
+              <Button
+                size="large"
+                type="button"
+                disabled={!hasStock || isAddingToCart}
+                onClick={() => void handleAddToCart(false)}
+              >
                 <FiShoppingBag aria-hidden="true" />
                 Añadir al carrito
               </Button>
@@ -369,7 +424,9 @@ function ProductDetailContent() {
             <Button
               size="large"
               variant="outline"
-              disabled={!hasStock}
+              type="button"
+              disabled={!hasStock || isAddingToCart}
+              onClick={() => void handleAddToCart(true)}
             >
               Comprar ahora
             </Button>

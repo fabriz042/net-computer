@@ -28,6 +28,9 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     @EntityGraph(attributePaths = {"category", "brand"})
     List<Product> findAllByEmbeddingIsNullOrderByCreatedAtAsc();
 
+    @EntityGraph(attributePaths = {"category", "brand"})
+    List<Product> findAllByOrderByCreatedAtDesc();
+
     @EntityGraph(attributePaths = {"category", "brand", "images"})
     @Query("SELECT product FROM Product product WHERE product.id = :productId")
     Optional<Product> findAdminDetailsById(@Param("productId") UUID productId);

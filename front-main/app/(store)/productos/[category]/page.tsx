@@ -8,6 +8,7 @@ import CatalogProductCard from "@/app/components/store/catalog-product-card";
 import Container from "@/app/components/shared/container";
 import PublicHeader from "@/app/components/layout/public/public-header";
 import PublicFooter from "@/app/components/layout/public/public-footer";
+import { trackPublicEvent } from "@/app/modules/analytics/event/services/public-event-tracker";
 import { listPublicProducts } from "@/app/modules/catalog/product/services/public-product.service";
 import type {
   PublicProduct,
@@ -119,7 +120,16 @@ function CategoryProductsContent() {
             </p>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {products.map((product) => (
-                <CatalogProductCard key={product.id} product={product} />
+                <CatalogProductCard
+                  key={product.id}
+                  product={product}
+                  onClick={() =>
+                    trackPublicEvent("CLICK", {
+                      componentId: "category-product-list",
+                      productId: product.id,
+                    })
+                  }
+                />
               ))}
             </div>
             {meta && meta.total_pages > 1 && (

@@ -3,17 +3,24 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Suspense, useEffect, useState, type ReactNode } from "react";
+import {
+  Suspense,
+  useEffect,
+  useState,
+  type MouseEventHandler,
+  type ReactNode,
+} from "react";
 import { FiMinus, FiPlus, FiShoppingBag } from "react-icons/fi";
 import Button from "@/app/components/ui/button";
 import Breadcrumbs from "@/app/components/shared/breadcrumbs";
 import Container from "@/app/components/shared/container";
 import PublicHeader from "@/app/components/layout/public/public-header";
 import PublicFooter from "@/app/components/layout/public/public-footer";
+import { trackPublicEvent } from "@/app/modules/analytics/event/services/public-event-tracker";
+import { getPublicProductBySlug } from "@/app/modules/catalog/product/services/public-product.service";
 import {
-  getPublicProductBySlug,
-  listPublicProducts,
-} from "@/app/modules/catalog/product/services/public-product.service";
+  listPublicRecommendations,
+} from "@/app/modules/catalog/recommendation/services/public-recommendation.service";
 import type { PublicProduct } from "@/app/modules/catalog/product/types/public-product.type";
 
 const specificationLabels: Record<string, string> = {
@@ -88,9 +95,11 @@ function StorePageShell({ children }: { children: ReactNode }) {
 function RecommendedProductCard({
   product,
   fallbackCategory,
+  onClick,
 }: {
   product: PublicProduct;
   fallbackCategory: string;
+  onClick: MouseEventHandler<HTMLAnchorElement>;
 }) {
   const href = `/productos/${product.categorySlug ?? fallbackCategory}/${product.slug}`;
 
@@ -102,6 +111,7 @@ function RecommendedProductCard({
         transition hover:-translate-y-0.5 hover:shadow-[0_7px_18px_rgb(16_24_40_/_9%)]
       "
       href={href}
+      onClick={onClick}
     >
       <div className="relative aspect-[1.6] w-full overflow-hidden rounded-md bg-[#f1f4f8]">
         {product.primaryImageUrl ? (
@@ -158,23 +168,19 @@ function ProductDetailContent() {
         if (!isCurrent) return;
         setProduct(result);
         setIsLoading(false);
+
+        void listPublicRecommendations(result.id)
+          .then((recommendationResults) => {
+            if (isCurrent) setRecommendations(recommendationResults);
+          })
+          .catch(() => {
+            if (isCurrent) setRecommendations([]);
+          });
       })
       .catch(() => {
         if (!isCurrent) return;
         setHasError(true);
         setIsLoading(false);
-      });
-
-    void listPublicProducts({ page: 1, per_page: 8, order: "desc" })
-      .then((result) => {
-        if (isCurrent) {
-          setRecommendations(
-            result.data.filter((item) => item.slug !== slug).slice(0, 4)
-          );
-        }
-      })
-      .catch(() => {
-        if (isCurrent) setRecommendations([]);
       });
 
     return () => {
@@ -238,6 +244,7 @@ function ProductDetailContent() {
     ([, value]) => value !== null && value !== undefined
   );
   const hasStock = product.stock > 0;
+  const recommendationProductIds = recommendations.map(({ id }) => id);
 
   return (
     <StorePageShell>
@@ -425,6 +432,14 @@ function ProductDetailContent() {
                   fallbackCategory={category}
                   key={recommendedProduct.id}
                   product={recommendedProduct}
+                  onClick={() =>
+                    trackPublicEvent("CLICK", {
+                      componentId: "product-detail-recommendations",
+                      sourceProductId: product.id,
+                      productIds: recommendationProductIds,
+                      productId: recommendedProduct.id,
+                    })
+                  }
                 />
               ))}
             </div>

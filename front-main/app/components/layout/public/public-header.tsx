@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { FiShoppingBag, FiUser } from "react-icons/fi";
+import { FiUser } from "react-icons/fi";
 import Button from "@/app/components/ui/button";
+import CartButton from "@/app/components/store/cart-button";
 import PublicSearchForm from "@/app/components/store/public-search-form";
 
 export default function PublicHeader() {
@@ -84,21 +85,7 @@ export default function PublicHeader() {
       <PublicSearchForm />
 
       <div className="col-start-2 row-start-1 flex flex-none items-center gap-3">
-        <Button
-          href="/carrito"
-          variant="outline"
-          size="icon"
-          aria-label="Carrito de compras, 2 productos"
-        >
-          <FiShoppingBag aria-hidden="true" className="h-4 w-4" />
-          <span className="
-            absolute -right-1 -top-[5px] grid h-4 w-4 place-items-center
-            text-[9px] font-semibold leading-none text-white
-            rounded-full bg-[#111827]
-          ">
-            2
-          </span>
-        </Button>
+        <CartButton />
         <Button href="/login" size="wide">
           <FiUser aria-hidden="true" className="h-4 w-4" />
           Ingresar

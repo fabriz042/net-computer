@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FiCpu, FiEdit2, FiImage, FiPlus, FiTrash2 } from "react-icons/fi";
+import { FiCpu, FiEdit2, FiImage, FiPlus } from "react-icons/fi";
 import DataTable, {
   type DataTableColumn,
 } from "@/app/components/ui/data-table";
 import Button from "@/app/components/ui/button";
 import Dialog from "@/app/components/ui/dialog";
+import ProductEditForm from "@/app/admin/productos/components/product-edit-form";
 import ProductForm from "@/app/admin/productos/components/product-form";
 import FilterSelect, {
   type FilterOption,
@@ -23,36 +24,27 @@ import type {
   AdminProductListResponse,
 } from "@/app/modules/catalog/product/types/admin-product.type";
 
-type ProductStatus = "active" | "inactive" | "low-stock" | "out-of-stock";
+type ProductStatus = "active" | "inactive";
 
-const pageSize = 8;
+const pageSize = 12;
 
 const statusLabels: Record<ProductStatus, string> = {
   active: "Activo",
   inactive: "Inactivo",
-  "low-stock": "Bajo stock",
-  "out-of-stock": "Agotado",
 };
 
 const statusTextStyles: Record<ProductStatus, string> = {
   active: "text-[#166534]",
   inactive: "text-[#475569]",
-  "low-stock": "text-[#9a3412]",
-  "out-of-stock": "text-[#475569]",
 };
 
 const statusSurfaceStyles: Record<ProductStatus, string> = {
   active: "bg-[#dcfce7]",
   inactive: "bg-[#f1f5f9]",
-  "low-stock": "bg-[#ffedd5]",
-  "out-of-stock": "bg-[#f1f5f9]",
 };
 
 const getProductStatus = (product: AdminProduct): ProductStatus => {
-  if (!product.active) return "inactive";
-  if (product.stock === 0) return "out-of-stock";
-  if (product.stock <= 3) return "low-stock";
-  return "active";
+  return product.active ? "active" : "inactive";
 };
 
 const formatPrice = (price: number): string =>
@@ -75,11 +67,12 @@ const categoryOptions: FilterOption[] = [
 const statusOptions: FilterOption[] = [
   { value: "all-statuses", label: "Todos los Estados" },
   { value: "active", label: "Activo" },
-  { value: "low-stock", label: "Bajo stock" },
-  { value: "out-of-stock", label: "Agotado" },
+  { value: "inactive", label: "Inactivo" },
 ];
 
-const productColumns: DataTableColumn<AdminProduct>[] = [
+const buildProductColumns = (
+  onEditProduct: (product: AdminProduct) => void
+): DataTableColumn<AdminProduct>[] => [
   {
     id: "product",
     label: "Producto",
@@ -116,7 +109,7 @@ const productColumns: DataTableColumn<AdminProduct>[] = [
   {
     id: "category",
     label: "Categoría",
-    width: "medium",
+    width: "normal",
     render: (product) => (
       <span className="text-[#647895]">{product.categoryName ?? "Sin categoría"}</span>
     ),
@@ -154,8 +147,8 @@ const productColumns: DataTableColumn<AdminProduct>[] = [
   },
   {
     id: "embedding",
-    label: "Embedding",
-    width: "compact",
+    label: "Emb.",
+    width: "narrow",
     align: "center",
     render: (product) => (
       <span className={product.hasEmbedding ? "font-medium text-green-700" : "text-slate-500"}>
@@ -166,10 +159,10 @@ const productColumns: DataTableColumn<AdminProduct>[] = [
   {
     id: "actions",
     label: "Acciones",
-    width: "compact",
+    width: "narrow",
     align: "center",
     render: (product) => (
-      <div className="flex items-center justify-center gap-2">
+      <div className="flex items-center justify-center">
         <button
           className="
             inline-flex h-7 w-7 items-center justify-center
@@ -177,20 +170,10 @@ const productColumns: DataTableColumn<AdminProduct>[] = [
             rounded transition hover:bg-slate-100 hover:text-[#111827]
           "
           type="button"
+          onClick={() => onEditProduct(product)}
           aria-label={`Editar ${product.name}`}
         >
           <FiEdit2 aria-hidden="true" className="h-4 w-4" />
-        </button>
-        <button
-          className="
-            inline-flex h-7 w-7 items-center justify-center
-            text-red-500
-            rounded transition hover:bg-red-50 hover:text-red-700
-          "
-          type="button"
-          aria-label={`Eliminar ${product.name}`}
-        >
-          <FiTrash2 aria-hidden="true" className="h-4 w-4" />
         </button>
       </div>
     ),
@@ -202,8 +185,9 @@ export default function AdminProductsPage() {
   const [searchValue, setSearchValue] = useState("");
   const debouncedSearch = useDebounce(searchValue.trim(), 200);
   const [isNewProductDialogOpen, setIsNewProductDialogOpen] = useState(false);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [isGeneratingEmbeddings, setIsGeneratingEmbeddings] = useState(false);
-  const [embeddingSnackbar, setEmbeddingSnackbar] = useState<{
+  const [snackbar, setSnackbar] = useState<{
     type: SnackbarType;
     text: string;
   } | null>(null);
@@ -240,13 +224,27 @@ export default function AdminProductsPage() {
     setIsNewProductDialogOpen(false);
   }, []);
 
+  const closeEditProductDialog = useCallback(() => {
+    setEditingProductId(null);
+  }, []);
+
+  const handleProductUpdated = useCallback(() => {
+    setEditingProductId(null);
+    setSnackbar({ type: "success", text: "Producto actualizado." });
+    void loadProducts(page, debouncedSearch);
+  }, [debouncedSearch, loadProducts, page]);
+
+  const handleEditProduct = useCallback((product: AdminProduct) => {
+    setEditingProductId(product.id);
+  }, []);
+
   const handleGenerateEmbeddings = useCallback(async () => {
     setIsGeneratingEmbeddings(true);
-    setEmbeddingSnackbar(null);
+    setSnackbar(null);
 
     try {
       const result = await generateAdminProductEmbeddings();
-      setEmbeddingSnackbar({
+      setSnackbar({
         type: result.generatedCount === 0 ? "warning" : "success",
         text: result.generatedCount === 0
           ? "Todos los productos ya tienen embeddings."
@@ -254,7 +252,7 @@ export default function AdminProductsPage() {
       });
       await loadProducts(page, debouncedSearch);
     } catch {
-      setEmbeddingSnackbar({
+      setSnackbar({
         type: "error",
         text: "No se pudieron generar los embeddings.",
       });
@@ -320,11 +318,11 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {embeddingSnackbar && (
+      {snackbar && (
         <Snackbar
-          key={`${embeddingSnackbar.type}-${embeddingSnackbar.text}`}
-          type={embeddingSnackbar.type}
-          text={embeddingSnackbar.text}
+          key={`${snackbar.type}-${snackbar.text}`}
+          type={snackbar.type}
+          text={snackbar.text}
         />
       )}
 
@@ -368,7 +366,7 @@ export default function AdminProductsPage() {
       )}
 
       <DataTable
-        columns={productColumns}
+        columns={buildProductColumns(handleEditProduct)}
         rows={isLoading ? [] : products}
         getRowKey={(product) => product.id}
         summary={summary}
@@ -387,6 +385,20 @@ export default function AdminProductsPage() {
           onCancel={closeNewProductDialog}
           onCreated={handleProductCreated}
         />
+      </Dialog>
+      <Dialog
+        open={editingProductId !== null}
+        title="Editar Producto"
+        onClose={closeEditProductDialog}
+      >
+        {editingProductId && (
+          <ProductEditForm
+            key={editingProductId}
+            productId={editingProductId}
+            onCancel={closeEditProductDialog}
+            onUpdated={handleProductUpdated}
+          />
+        )}
       </Dialog>
     </div>
   );

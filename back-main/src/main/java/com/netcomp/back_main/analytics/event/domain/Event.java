@@ -13,7 +13,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "events", indexes = {
-        @Index(name = "idx_events_session_type_created_at", columnList = "session_id, event_type, created_at")
+        @Index(name = "idx_events_session_type_created_at", columnList = "session_id, event_type, created_at"),
+        @Index(name = "idx_events_visitor_type_created_at", columnList = "visitor_id, event_type, created_at")
 })
 public class Event {
 
@@ -24,6 +25,9 @@ public class Event {
 
     @Column(name = "session_id", nullable = false, length = 64)
     private String sessionId;
+
+    @Column(name = "visitor_id")
+    private UUID visitorId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "event_type", nullable = false, length = 30)
@@ -47,16 +51,40 @@ public class Event {
     }
 
     public Event(String sessionId, EventType eventType, User user, Map<String, Object> metadata) {
+        this(sessionId, null, eventType, user, metadata);
+    }
+
+    public Event(
+            String sessionId,
+            UUID visitorId,
+            EventType eventType,
+            User user,
+            Map<String, Object> metadata
+    ) {
         this.sessionId = sessionId;
+        this.visitorId = visitorId;
         this.eventType = eventType;
         this.user = user;
         this.metadata = metadata != null ? metadata : new HashMap<>();
     }
 
     public Event(UUID id, Instant createdAt, String sessionId, EventType eventType, User user, Map<String, Object> metadata) {
+        this(id, createdAt, sessionId, null, eventType, user, metadata);
+    }
+
+    public Event(
+            UUID id,
+            Instant createdAt,
+            String sessionId,
+            UUID visitorId,
+            EventType eventType,
+            User user,
+            Map<String, Object> metadata
+    ) {
         this.id = id;
         this.createdAt = createdAt;
         this.sessionId = sessionId;
+        this.visitorId = visitorId;
         this.eventType = eventType;
         this.user = user;
         this.metadata = metadata != null ? metadata : new HashMap<>();
@@ -73,6 +101,10 @@ public class Event {
 
     public String getSessionId() {
         return sessionId;
+    }
+
+    public UUID getVisitorId() {
+        return visitorId;
     }
 
     public EventType getEventType() {
@@ -98,6 +130,10 @@ public class Event {
 
     public void setSessionId(String sessionId) {
         this.sessionId = sessionId;
+    }
+
+    public void setVisitorId(UUID visitorId) {
+        this.visitorId = visitorId;
     }
 
     public void setEventType(EventType eventType) {

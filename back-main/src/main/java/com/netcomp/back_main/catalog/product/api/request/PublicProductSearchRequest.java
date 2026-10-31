@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Size;
 import org.springframework.web.bind.annotation.BindParam;
 
 public record PublicProductSearchRequest(
-        @Pattern(regexp = "(?i)^(asc|desc)$", message = "order debe ser asc o desc")
+        @Pattern(regexp = "^(asc|desc)$", message = "order debe ser asc o desc")
         String order,
 
         @Min(value = 1, message = "page debe ser mayor que cero")

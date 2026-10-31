@@ -7,9 +7,6 @@ import com.netcomp.back_main.catalog.product.domain.Product;
 import com.netcomp.back_main.catalog.product.repository.ProductRepository;
 import com.netcomp.back_main.common.api.response.PageResponse;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -31,7 +28,6 @@ import java.util.stream.Collectors;
 public class PublicProductService {
 
     // --- Constants ---
-    private static final Logger LOGGER = LoggerFactory.getLogger(PublicProductService.class);
     private static final double MAX_COSINE_DISTANCE = 0.70;
     private static final int MAX_VECTOR_SEARCH_RESULTS = 4;
 
@@ -40,8 +36,10 @@ public class PublicProductService {
     private final SearchQueryService searchQueryService;
 
     // --- Constructor ---
-    public PublicProductService(ProductRepository productRepository,
-                                SearchQueryService searchQueryService) {
+    public PublicProductService(
+        ProductRepository productRepository,
+        SearchQueryService searchQueryService
+    ) {
         this.productRepository = productRepository;
         this.searchQueryService = searchQueryService;
     }
@@ -52,23 +50,13 @@ public class PublicProductService {
                 request.resolvedPage() - 1,
                 request.resolvedPerPage()
         );
-        String sortOrder = "asc".equalsIgnoreCase(request.order()) ? "asc" : "desc";
+        String sortOrder = "asc".equals(request.order()) ? "asc" : "desc";
         String search = StringUtils.trimToEmpty(request.search());
         String categorySlug = StringUtils.isBlank(request.categorySlug())
                 ? null
                 : StringUtils.trim(request.categorySlug());
         Page<Product> page = searchActiveProducts(search, categorySlug, sortOrder, pageable);
         PageResponse<ProductResponse> response = PageResponse.from(page, ProductResponse::from);
-
-        logInfo("Public product list completed", Map.of(
-                "operation", "public_product_list",
-                "page", Integer.toString(page.getNumber() + 1),
-                "page_size", Integer.toString(page.getSize()),
-                "category_filter", categorySlug == null ? "all" : categorySlug,
-                "search_present", Boolean.toString(!search.isBlank()),
-                "result_count", Integer.toString(page.getNumberOfElements()),
-                "total_results", Long.toString(page.getTotalElements())
-        ));
 
         return response;
     }
@@ -81,30 +69,10 @@ public class PublicProductService {
                 ));
         ProductResponse response = ProductResponse.from(product);
 
-        logInfo("Public product details retrieved", Map.of(
-                "operation", "public_product_detail",
-                "product_id", product.getId().toString(),
-                "product_slug", product.getSlug()
-        ));
-
         return response;
     }
 
     // --- Private helpers ---
-    private void logInfo(String message, Map<String, String> context) {
-        Map<String, String> previousContext = MDC.getCopyOfContextMap();
-        try {
-            context.forEach(MDC::put);
-            LOGGER.info(message);
-        } finally {
-            if (previousContext == null) {
-                MDC.clear();
-            } else {
-                MDC.setContextMap(previousContext);
-            }
-        }
-    }
-
     private Page<Product> searchActiveProducts(String search, String categorySlug, String sortOrder, Pageable pageable) {
         if (search == null || search.isBlank()) {
             return productRepository.searchActiveProducts("", categorySlug, sortOrder, pageable);
@@ -115,6 +83,10 @@ public class PublicProductService {
             return productRepository.searchActiveProducts(search, categorySlug, sortOrder, pageable);
         }
 
+        return searchActiveProductsByEmbedding(queryEmbedding, categorySlug, pageable);
+    }
+
+    private Page<Product> searchActiveProductsByEmbedding( float[] queryEmbedding, String categorySlug, Pageable pageable) {
         Pageable vectorPageable = PageRequest.of(0, MAX_VECTOR_SEARCH_RESULTS);
         List<UUID> nearestProductIds = productRepository.searchActiveProductIdsByEmbedding(
                 toVectorLiteral(queryEmbedding),

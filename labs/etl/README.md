@@ -12,7 +12,7 @@ Install dependencies once from the repository root:
 .\labs\.venv\Scripts\python.exe labs\etl\process_search_analytics.py
 ```
 
-## Application logs
+## Application logs with pyspark
 
 ```powershell
 .\labs\.venv\Scripts\python.exe labs\etl\process_application_logs.py

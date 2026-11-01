@@ -12,21 +12,36 @@ import PublicHeader from "@/app/components/layout/public/public-header";
 import Button from "@/app/components/ui/button";
 import Snackbar from "@/app/components/ui/snackbar";
 import { getApiErrorMessage } from "@/app/modules/api-error.service";
-import { cancelOrder, getOrder } from "@/app/modules/orders/order/services/order.service";
+import {
+  cancelOrder,
+  getOrder,
+  readGuestOrder,
+} from "@/app/modules/orders/order/services/order.service";
 import { formatDateTime, formatPrice } from "@/app/modules/orders/order/services/order-format";
 import type { Order } from "@/app/modules/orders/order/types/order.type";
+import { getCurrentUserId } from "@/app/modules/users/session/services/session.service";
 
-function StorePageShell({ title, children }: { title: string; children: ReactNode }) {
+function StorePageShell({
+  title,
+  isGuest = false,
+  children,
+}: {
+  title: string;
+  isGuest?: boolean;
+  children: ReactNode;
+}) {
   return (
     <Container>
       <PublicHeader />
       <main className="min-h-[60vh] px-4 pb-12 pt-6 sm:px-6 min-[761px]:px-[clamp(24px,4.1vw,50px)]">
         <Breadcrumbs
-          items={[
-            { label: "Inicio", href: "/" },
-            { label: "Mis pedidos", href: "/pedidos" },
-            { label: title },
-          ]}
+          items={isGuest
+            ? [{ label: "Inicio", href: "/" }, { label: title }]
+            : [
+              { label: "Inicio", href: "/" },
+              { label: "Mis pedidos", href: "/pedidos" },
+              { label: title },
+            ]}
         />
         {children}
       </main>
@@ -43,6 +58,7 @@ function OrderDetailContent() {
     id: string;
     order: Order | null;
     error: string | null;
+    isGuest: boolean;
   } | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
@@ -50,13 +66,34 @@ function OrderDetailContent() {
   useEffect(() => {
     let isCurrent = true;
 
+    if (!getCurrentUserId()) {
+      const guestOrder = readGuestOrder(id);
+      queueMicrotask(() => {
+        if (!isCurrent) return;
+        setResult({
+          id,
+          order: guestOrder,
+          error: guestOrder ? null : "Este pedido no está disponible en este dispositivo.",
+          isGuest: true,
+        });
+      });
+      return () => {
+        isCurrent = false;
+      };
+    }
+
     void getOrder(id)
       .then((order) => {
-        if (isCurrent) setResult({ id, order, error: null });
+        if (isCurrent) setResult({ id, order, error: null, isGuest: false });
       })
       .catch((error: unknown) => {
         if (isCurrent) {
-          setResult({ id, order: null, error: getApiErrorMessage(error, "No pudimos cargar el pedido.") });
+          setResult({
+            id,
+            order: null,
+            error: getApiErrorMessage(error, "No pudimos cargar el pedido."),
+            isGuest: false,
+          });
         }
       });
 
@@ -68,6 +105,7 @@ function OrderDetailContent() {
   const isLoading = result?.id !== id;
   const order = isLoading ? null : result?.order ?? null;
   const loadError = isLoading ? null : result?.error ?? null;
+  const isGuest = result?.isGuest ?? false;
 
   const handleCancel = async () => {
     if (!order) return;
@@ -75,7 +113,7 @@ function OrderDetailContent() {
     setCancelError(null);
     try {
       const cancelledOrder = await cancelOrder(order.id);
-      setResult({ id, order: cancelledOrder, error: null });
+      setResult({ id, order: cancelledOrder, error: null, isGuest: false });
     } catch (error) {
       setCancelError(getApiErrorMessage(error, "No se pudo cancelar el pedido."));
     } finally {
@@ -93,20 +131,24 @@ function OrderDetailContent() {
 
   if (loadError || !order) {
     return (
-      <StorePageShell title="Pedido">
+      <StorePageShell title="Pedido" isGuest={isGuest}>
         <div className="flex min-h-[40vh] flex-col items-center justify-center gap-4 text-center">
           <h1 className="m-0 text-2xl font-bold text-[#111827]">No encontramos este pedido</h1>
           <p className="m-0 text-base text-[#647895]">{loadError}</p>
-          <Button href="/pedidos" variant="outline" size="large">Ver mis pedidos</Button>
+          {isGuest ? (
+            <Button href="/" variant="outline" size="large">Seguir comprando</Button>
+          ) : (
+            <Button href="/pedidos" variant="outline" size="large">Ver mis pedidos</Button>
+          )}
         </div>
       </StorePageShell>
     );
   }
 
-  const canCancel = order.status === "PENDING";
+  const canCancel = !isGuest && order.status === "PENDING";
 
   return (
-    <StorePageShell title={`Pedido #${order.code}`}>
+    <StorePageShell title={`Pedido #${order.code}`} isGuest={isGuest}>
       {cancelError && <Snackbar key={cancelError} type="error" text={cancelError} />}
 
       {isNewOrder && order.status !== "CANCELLED" && (
@@ -119,7 +161,7 @@ function OrderDetailContent() {
           <div>
             <h2 className="m-0 text-lg font-bold">¡Gracias por tu compra!</h2>
             <p className="mb-0 mt-1 text-base">
-              Registramos tu pedido #{order.code}. Te contactaremos para coordinar el pago y el envío.
+              Registramos tu pedido #{order.code}. Te contactaremos{isGuest ? ` a ${order.customerEmail}` : ""} para coordinar el pago y el envío.
             </p>
           </div>
         </section>
@@ -191,9 +233,11 @@ function OrderDetailContent() {
             </Button>
           )}
           <Button href="/" size="large">Seguir comprando</Button>
-          <Link className="text-center text-sm font-medium text-blue-700 no-underline hover:text-blue-900" href="/pedidos">
-            Ver todos mis pedidos
-          </Link>
+          {!isGuest && (
+            <Link className="text-center text-sm font-medium text-blue-700 no-underline hover:text-blue-900" href="/pedidos">
+              Ver todos mis pedidos
+            </Link>
+          )}
         </aside>
       </div>
     </StorePageShell>

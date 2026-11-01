@@ -17,15 +17,23 @@ import Container from "@/app/components/shared/container";
 import PublicFooter from "@/app/components/layout/public/public-footer";
 import PublicHeader from "@/app/components/layout/public/public-header";
 import Button from "@/app/components/ui/button";
+import InputField from "@/app/components/ui/input-field";
 import Snackbar, { type SnackbarType } from "@/app/components/ui/snackbar";
 import { useCart } from "@/app/hooks/use-cart";
 import { getApiErrorMessage } from "@/app/modules/api-error.service";
-import { createOrder } from "@/app/modules/orders/order/services/order.service";
+import {
+  createGuestOrder,
+  createOrder,
+  saveGuestOrder,
+} from "@/app/modules/orders/order/services/order.service";
 import { formatPrice } from "@/app/modules/orders/order/services/order-format";
 import type { CartItem } from "@/app/modules/users/cart/types/cart.type";
 
 const MIN_ADDRESS_LENGTH = 10;
 const MAX_ADDRESS_LENGTH = 255;
+const MIN_NAME_LENGTH = 2;
+const MAX_CONTACT_LENGTH = 100;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function StorePageShell({ children }: { children: ReactNode }) {
   return (
@@ -174,6 +182,8 @@ export default function CartPage() {
     clear,
     refresh,
   } = useCart();
+  const [customerName, setCustomerName] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
   const [shippingAddress, setShippingAddress] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
@@ -192,13 +202,25 @@ export default function CartPage() {
   };
 
   const trimmedAddress = shippingAddress.trim();
+  const trimmedName = customerName.trim();
+  const trimmedEmail = customerEmail.trim();
   const isAddressValid = trimmedAddress.length >= MIN_ADDRESS_LENGTH;
+  const isContactValid = isAuthenticated
+    || (trimmedName.length >= MIN_NAME_LENGTH && EMAIL_PATTERN.test(trimmedEmail));
   const isBusy = isSubmitting || pendingProductId !== null;
 
   const handleCheckout = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setCheckoutError(null);
 
+    if (!isAuthenticated && trimmedName.length < MIN_NAME_LENGTH) {
+      setCheckoutError(`El nombre debe tener al menos ${MIN_NAME_LENGTH} caracteres.`);
+      return;
+    }
+    if (!isAuthenticated && !EMAIL_PATTERN.test(trimmedEmail)) {
+      setCheckoutError("Ingresa un correo electrónico válido.");
+      return;
+    }
     if (!isAddressValid) {
       setCheckoutError(`La dirección debe tener al menos ${MIN_ADDRESS_LENGTH} caracteres.`);
       return;
@@ -206,9 +228,22 @@ export default function CartPage() {
 
     setIsSubmitting(true);
     try {
-      const order = await createOrder({ shippingAddress: trimmedAddress });
+      if (isAuthenticated) {
+        const order = await createOrder({ shippingAddress: trimmedAddress });
+        router.push(`/pedidos/${order.id}?nuevo=1`);
+        void refresh();
+        return;
+      }
+
+      const order = await createGuestOrder({
+        customerName: trimmedName,
+        customerEmail: trimmedEmail,
+        shippingAddress: trimmedAddress,
+        items: cart.items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+      });
+      saveGuestOrder(order);
       router.push(`/pedidos/${order.id}?nuevo=1`);
-      void refresh();
+      void clear();
     } catch (error) {
       setCheckoutError(getApiErrorMessage(error, "No se pudo confirmar tu pedido. Inténtalo de nuevo."));
       await refresh();
@@ -312,8 +347,31 @@ export default function CartPage() {
             </p>
           )}
 
-          {isAuthenticated ? (
-            <form className="mt-5" onSubmit={handleCheckout} noValidate>
+          <form className="mt-5 grid gap-4" onSubmit={handleCheckout} noValidate>
+            {!isAuthenticated && (
+              <>
+                <InputField
+                  id="customer-name"
+                  label="Nombre completo"
+                  placeholder="Juan Pérez"
+                  required
+                  maxLength={MAX_CONTACT_LENGTH}
+                  value={customerName}
+                  onValueChange={setCustomerName}
+                />
+                <InputField
+                  id="customer-email"
+                  label="Correo electrónico"
+                  type="email"
+                  placeholder="tucorreo@ejemplo.com"
+                  required
+                  maxLength={MAX_CONTACT_LENGTH}
+                  value={customerEmail}
+                  onValueChange={setCustomerEmail}
+                />
+              </>
+            )}
+            <div>
               <label
                 className="mb-1.5 block text-sm font-semibold text-[#344054]"
                 htmlFor="shipping-address"
@@ -339,39 +397,29 @@ export default function CartPage() {
               <p id="shipping-address-help" className="mb-0 mt-1 text-xs text-[#71839d]">
                 {trimmedAddress.length}/{MAX_ADDRESS_LENGTH} caracteres
               </p>
+            </div>
 
-              {checkoutError && (
-                <p className="
-                  mb-0 mt-3 px-3 py-2
-                  text-sm text-red-700
-                  rounded-md border border-red-200 bg-red-50
-                " role="alert">
-                  {checkoutError}
-                </p>
-              )}
-
-              <div className="mt-4 grid">
-                <Button
-                  type="submit"
-                  size="large"
-                  disabled={isBusy || !cart.checkoutAvailable || !isAddressValid}
-                >
-                  <FiLock aria-hidden="true" className="h-4 w-4" />
-                  {isSubmitting ? "Confirmando..." : "Confirmar pedido"}
-                </Button>
-              </div>
-            </form>
-          ) : (
-            <div className="mt-5 grid gap-3">
-              <p className="m-0 text-sm text-[#526582]">
-                Inicia sesión para confirmar tu pedido. Guardaremos los productos de tu carrito.
+            {checkoutError && (
+              <p className="
+                m-0 px-3 py-2
+                text-sm text-red-700
+                rounded-md border border-red-200 bg-red-50
+              " role="alert">
+                {checkoutError}
               </p>
-              <Button href="/login?redirect=/carrito" size="large">
+            )}
+
+            <div className="grid">
+              <Button
+                type="submit"
+                size="large"
+                disabled={isBusy || !cart.checkoutAvailable || !isAddressValid || !isContactValid}
+              >
                 <FiLock aria-hidden="true" className="h-4 w-4" />
-                Iniciar sesión para comprar
+                {isSubmitting ? "Confirmando..." : "Confirmar pedido"}
               </Button>
             </div>
-          )}
+          </form>
 
           <div className="mt-3 grid">
             <Button href="/" variant="outline" size="large">Seguir comprando</Button>

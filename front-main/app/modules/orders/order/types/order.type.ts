@@ -47,6 +47,13 @@ export interface CreateOrderRequest {
   shippingAddress: string;
 }
 
+export interface CreateGuestOrderRequest {
+  customerName: string;
+  customerEmail: string;
+  shippingAddress: string;
+  items: { productId: string; quantity: number }[];
+}
+
 export interface OrderListParams {
   page?: number;
   per_page?: number;

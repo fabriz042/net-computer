@@ -2,6 +2,7 @@ package com.netcomp.back_main.orders.order.api.controller;
 
 import com.netcomp.back_main.common.api.request.RequestHeaders;
 import com.netcomp.back_main.common.api.response.PageResponse;
+import com.netcomp.back_main.orders.order.api.request.CreateGuestOrderRequest;
 import com.netcomp.back_main.orders.order.api.request.CreateOrderRequest;
 import com.netcomp.back_main.orders.order.api.response.OrderResponse;
 import com.netcomp.back_main.orders.order.service.OrderService;
@@ -35,6 +36,11 @@ public class PublicOrderController {
             @Valid @RequestBody CreateOrderRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createOrder(userId, request));
+    }
+
+    @PostMapping("/guest")
+    public ResponseEntity<OrderResponse> createGuest(@Valid @RequestBody CreateGuestOrderRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createGuestOrder(request));
     }
 
     @GetMapping
